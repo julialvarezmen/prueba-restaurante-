@@ -1,0 +1,114 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: salchipapas-db
+    environment:
+      POSTGRES_USER: salchipapas_user
+      POSTGRES_PASSWORD: salchipapas_pass
+      POSTGRES_DB: salchipapas_user
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - salchipapas-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salchipapas_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: salchipapas-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports:
+      - "5672:5672"    # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - salchipapas-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Producer API (FastAPI)
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: salchipapas-api
+    environment:
+      DATABASE_URL: postgresql://salchipapas_user:salchipapas_pass@postgres:5432/salchipapas_user
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672/
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 7d
+      PORT: 5000
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./api:/app
+    networks:
+      - salchipapas-network
+    command: uvicorn main:app --host 0.0.0.0 --port 5000 --reload
+
+  # Consumer Worker (Node.js)
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: salchipapas-worker
+    environment:
+      DATABASE_URL: postgresql://salchipapas_user:salchipapas_pass@postgres:5432/salchipapas_user
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./worker:/app
+      - /app/node_modules
+    networks:
+      - salchipapas-network
+    command: npm run dev
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: salchipapas-frontend
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - salchipapas-network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  salchipapas-network:
+    driver: bridge
