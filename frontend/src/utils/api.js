@@ -110,6 +110,11 @@ export const adminAPI = {
     const response = await api.put(`/admin/products/${productId}`, productData);
     return response.data;
   },
+
+  getAllCustomers: async () => {
+    const response = await api.get('/admin/customers');
+    return response.data;
+  },
 };
 
 // Addresses

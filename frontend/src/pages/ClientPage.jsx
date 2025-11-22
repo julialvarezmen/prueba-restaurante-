@@ -138,17 +138,35 @@ const ClientPage = ({ switchToAdmin }) => {
   };
 
   const handlePlaceOrder = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0) {
+      alert('El carrito está vacío');
+      return;
+    }
+
+    if (!user) {
+      alert('Debes iniciar sesión para realizar un pedido');
+      return;
+    }
+
+    if (!orderForm.addressId) {
+      alert('Debes seleccionar una dirección de entrega');
+      return;
+    }
 
     try {
+      // Calcular el total
+      const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
       const orderData = {
         items: cart.map(item => ({
           productId: item.id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          price: item.price  // Incluir el precio
         })),
         addressId: orderForm.addressId,
         paymentMethod: orderForm.paymentMethod,
-        notes: orderForm.notes
+        notes: orderForm.notes || null,
+        total: total  // Incluir el total calculado
       };
 
       await ordersAPI.create(orderData);
@@ -158,7 +176,8 @@ const ClientPage = ({ switchToAdmin }) => {
       loadOrders();
     } catch (error) {
       console.error('Error creating order:', error);
-      alert('Error al crear el pedido. Por favor intenta nuevamente.');
+      const errorMessage = error.response?.data?.detail || error.message || 'Error desconocido';
+      alert(`Error al crear el pedido: ${errorMessage}`);
     }
   };
 
@@ -300,9 +319,14 @@ const ClientPage = ({ switchToAdmin }) => {
             >
               Cancelar
             </button>
-                  <button
+          </div>
+        </div>
+      )}
+      
+      {/* Botón flotante para ir a vista admin */}
+      <button
         onClick={switchToAdmin}
-        className="fixed bottom-8 right-8 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 flex items-center gap-2"
+        className="fixed bottom-8 right-8 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 flex items-center gap-2 z-40"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -311,9 +335,6 @@ const ClientPage = ({ switchToAdmin }) => {
         </svg>
         Ir a Vista Admin
       </button>
-          </div>
-        </div>
-      )}
 
       {/* Register Modal */}
       {showRegister && (

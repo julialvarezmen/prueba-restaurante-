@@ -1,5 +1,6 @@
 import asyncpg
 import os
+import uuid
 from typing import List, Dict, Any, Optional
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -7,6 +8,16 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 async def get_connection():
     """Obtener conexión a PostgreSQL"""
     return await asyncpg.connect(DATABASE_URL)
+
+def convert_uuid_to_str(data: Any) -> Any:
+    """Convertir UUIDs a strings en diccionarios o listas"""
+    if isinstance(data, dict):
+        return {k: str(v) if isinstance(v, uuid.UUID) else convert_uuid_to_str(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_uuid_to_str(item) for item in data]
+    elif isinstance(data, uuid.UUID):
+        return str(data)
+    return data
 
 async def get_products(category: Optional[str] = None, available: Optional[bool] = None) -> List[Dict[str, Any]]:
     """Obtener lista de productos"""
@@ -27,7 +38,7 @@ async def get_products(category: Optional[str] = None, available: Optional[bool]
         query += " ORDER BY \"createdAt\" DESC"
         
         rows = await conn.fetch(query, *params)
-        return [dict(row) for row in rows]
+        return [convert_uuid_to_str(dict(row)) for row in rows]
     finally:
         await conn.close()
 
@@ -39,7 +50,7 @@ async def get_product_by_id(product_id: str) -> Optional[Dict[str, Any]]:
             'SELECT id, name, description, price, image, category, "isAvailable" FROM products WHERE id = $1',
             product_id
         )
-        return dict(row) if row else None
+        return convert_uuid_to_str(dict(row)) if row else None
     finally:
         await conn.close()
 
@@ -68,7 +79,7 @@ async def create_order(user_id: str, address_id: str, items: List[Dict], total: 
                     order_id, item["productId"], item["quantity"], item["price"]
                 )
             
-            # Obtener orden completa
+            # Obtener orden completa con items
             order = await conn.fetchrow(
                 """
                 SELECT id, "userId", "addressId", status, total, "paymentMethod", notes, "createdAt", "updatedAt"
@@ -77,7 +88,31 @@ async def create_order(user_id: str, address_id: str, items: List[Dict], total: 
                 order_id
             )
             
-            return dict(order) if order else None
+            if not order:
+                return None
+            
+            order_dict = convert_uuid_to_str(dict(order))
+            
+            # Agregar items a la orden
+            order_items = await conn.fetch(
+                """
+                SELECT "productId", quantity, price
+                FROM order_items
+                WHERE "orderId" = $1
+                """,
+                order_id
+            )
+            # Convertir items y asegurar formato consistente
+            items_list = []
+            for item in order_items:
+                item_dict = convert_uuid_to_str(dict(item))
+                # Asegurar que productId esté presente (puede venir como product_id)
+                if 'productId' not in item_dict and 'product_id' in item_dict:
+                    item_dict['productId'] = item_dict.pop('product_id')
+                items_list.append(item_dict)
+            order_dict['items'] = items_list
+            
+            return order_dict
     finally:
         await conn.close()
 
@@ -92,7 +127,56 @@ async def get_order_status(order_id: str) -> Optional[Dict[str, Any]]:
             """,
             order_id
         )
-        return dict(order) if order else None
+        return convert_uuid_to_str(dict(order)) if order else None
+    finally:
+        await conn.close()
+
+async def get_user_orders(user_id: str) -> List[Dict[str, Any]]:
+    """Obtener todas las órdenes de un usuario específico"""
+    conn = await get_connection()
+    try:
+        orders = await conn.fetch(
+            """
+            SELECT 
+                o.id, 
+                o.status, 
+                o.total, 
+                o."paymentMethod", 
+                o.notes,
+                o."createdAt", 
+                o."updatedAt",
+                o."addressId"
+            FROM orders o
+            WHERE o."userId" = $1
+            ORDER BY o."createdAt" DESC
+            """,
+            user_id
+        )
+        
+        orders_list = [convert_uuid_to_str(dict(row)) for row in orders]
+        
+        # Para cada orden, obtener sus items
+        for order in orders_list:
+            items = await conn.fetch(
+                """
+                SELECT 
+                    oi.id,
+                    oi.quantity,
+                    oi.price,
+                    p.id as product_id,
+                    p.name as product_name,
+                    p.description as product_description,
+                    p.category as product_category
+                FROM order_items oi
+                JOIN products p ON oi."productId" = p.id
+                WHERE oi."orderId" = $1
+                ORDER BY oi."createdAt"
+                """,
+                order['id']
+            )
+            order['items'] = [convert_uuid_to_str(dict(item)) for item in items]
+        
+        return orders_list
     finally:
         await conn.close()
 
@@ -104,7 +188,7 @@ async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
             'SELECT id, email, password, name, phone, role FROM users WHERE email = $1',
             email
         )
-        return dict(user) if user else None
+        return convert_uuid_to_str(dict(user)) if user else None
     finally:
         await conn.close()
 
@@ -125,7 +209,7 @@ async def create_user(email: str, hashed_password: str, name: str, phone: Option
             'SELECT id, email, name, phone, role FROM users WHERE id = $1',
             user_id
         )
-        return dict(user) if user else None
+        return convert_uuid_to_str(dict(user)) if user else None
     finally:
         await conn.close()
 
@@ -164,7 +248,7 @@ async def get_all_orders() -> List[Dict[str, Any]]:
         )
         
         # Convertir a lista de diccionarios y agregar items
-        orders_list = [dict(row) for row in orders]
+        orders_list = [convert_uuid_to_str(dict(row)) for row in orders]
         
         # Para cada orden, obtener sus items con información del producto
         for order in orders_list:
@@ -185,7 +269,7 @@ async def get_all_orders() -> List[Dict[str, Any]]:
                 """,
                 order['id']
             )
-            order['items'] = [dict(item) for item in items]
+            order['items'] = [convert_uuid_to_str(dict(item)) for item in items]
         
         return orders_list
     finally:
@@ -203,7 +287,7 @@ async def update_order_status(order_id: str, status: str) -> Optional[Dict[str, 
             """,
             status, order_id
         )
-        return dict(order) if order else None
+        return convert_uuid_to_str(dict(order)) if order else None
     finally:
         await conn.close()
 
@@ -233,7 +317,7 @@ async def create_address(user_id: str, street: str, city: str, state: str, zip_c
             'SELECT id, "userId", street, city, state, "zipCode", country, "isDefault", instructions FROM addresses WHERE id = $1',
             address_id
         )
-        return dict(address) if address else None
+        return convert_uuid_to_str(dict(address)) if address else None
     finally:
         await conn.close()
 
@@ -249,7 +333,7 @@ async def get_user_addresses(user_id: str) -> List[Dict[str, Any]]:
             """,
             user_id
         )
-        return [dict(row) for row in addresses]
+        return [convert_uuid_to_str(dict(row)) for row in addresses]
     finally:
         await conn.close()
 
@@ -261,7 +345,7 @@ async def get_address_by_id(address_id: str) -> Optional[Dict[str, Any]]:
             'SELECT id, "userId", street, city, state, "zipCode", country, "isDefault", instructions FROM addresses WHERE id = $1',
             address_id
         )
-        return dict(address) if address else None
+        return convert_uuid_to_str(dict(address)) if address else None
     finally:
         await conn.close()
 
@@ -282,7 +366,7 @@ async def create_product(name: str, description: Optional[str], price: float, ca
             'SELECT id, name, description, price, image, category, "isAvailable", "createdAt", "updatedAt" FROM products WHERE id = $1',
             product_id
         )
-        return dict(product) if product else None
+        return convert_uuid_to_str(dict(product)) if product else None
     finally:
         await conn.close()
 
@@ -318,7 +402,58 @@ async def update_product(product_id: str, name: Optional[str] = None, descriptio
             updated_name, updated_description, updated_price, updated_category, updated_image, updated_available, product_id
         )
         
-        return dict(product) if product else None
+        return convert_uuid_to_str(dict(product)) if product else None
+    finally:
+        await conn.close()
+
+async def get_all_customers_with_addresses() -> List[Dict[str, Any]]:
+    """Obtener todos los clientes (CUSTOMER role) con sus direcciones (admin)"""
+    conn = await get_connection()
+    try:
+        # Obtener todos los usuarios con rol CUSTOMER
+        customers = await conn.fetch(
+            """
+            SELECT 
+                u.id,
+                u.email,
+                u.name,
+                u.phone,
+                u.role,
+                u."createdAt",
+                u."updatedAt"
+            FROM users u
+            WHERE u.role = 'CUSTOMER'
+            ORDER BY u."createdAt" DESC
+            """
+        )
+        
+        customers_list = [convert_uuid_to_str(dict(row)) for row in customers]
+        
+        # Para cada cliente, obtener sus direcciones
+        for customer in customers_list:
+            addresses = await conn.fetch(
+                """
+                SELECT 
+                    id,
+                    "userId",
+                    street,
+                    city,
+                    state,
+                    "zipCode",
+                    country,
+                    "isDefault",
+                    instructions,
+                    "createdAt",
+                    "updatedAt"
+                FROM addresses
+                WHERE "userId" = $1
+                ORDER BY "isDefault" DESC, "createdAt" DESC
+                """,
+                customer['id']
+            )
+            customer['addresses'] = [convert_uuid_to_str(dict(addr)) for addr in addresses]
+        
+        return customers_list
     finally:
         await conn.close()
 

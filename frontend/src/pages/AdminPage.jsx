@@ -2,87 +2,185 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/admin/AdminLayout';
 import OrderManagement from '../components/admin/OrderManagement';
 import ProductManagement from '../components/admin/ProductManagement';
+import CustomerManagement from '../components/admin/CustomerManagement';
 import StatsCard from '../components/admin/StatsCard';
+import { adminAPI, productsAPI } from '../utils/api';
 import { Package2, DollarSign, Edit, User } from 'lucide-react';
 
-
-const AdminPage = ({ switchToClient }) => {
+const AdminPage = ({ switchToClient, adminUser, onLogout }) => {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [stats, setStats] = useState({ todayOrders: 0, todayRevenue: 0 });
+  const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState('orders'); // 'orders', 'products', 'customers'
 
-  // Mock data initialization
+  // Load real data from API
   useEffect(() => {
-    setProducts([
-      { id: '1', name: 'Hamburguesa Gourmet', description: 'Carne premium, queso cheddar, lechuga, tomate', price: 12.99, image: 'https://placehold.co/300x200/FF6B6B/FFFFFF?text=Hamburguesa', category: 'Principal', isAvailable: true },
-      { id: '2', name: 'Pizza Margarita', description: 'Mozzarella, albahaca fresca, salsa de tomate', price: 10.99, image: 'https://placehold.co/300x200/4ECDC4/FFFFFF?text=Pizza', category: 'Principal', isAvailable: true },
-      { id: '3', name: 'Ensalada César', description: 'Lechuga romana, pollo a la parrilla, crutones', price: 8.99, image: 'https://placehold.co/300x200/45B7D1/FFFFFF?text=Ensalada', category: 'Entrante', isAvailable: true },
-      { id: '4', name: 'Tiramisú', description: 'Postre italiano con café y mascarpone', price: 6.99, image: 'https://placehold.co/300x200/F7DC6F/FFFFFF?text=Tiramisu', category: 'Postre', isAvailable: true },
-      { id: '5', name: 'Sopa de Tomate', description: 'Sopa casera con hierbas frescas', price: 5.99, image: 'https://placehold.co/300x200/FF8A65/FFFFFF?text=Sopa', category: 'Entrante', isAvailable: true },
-      { id: '6', name: 'Pasta Carbonara', description: 'Pasta fresca con beicon y queso parmesano', price: 11.99, image: 'https://placehold.co/300x200/BA68C8/FFFFFF?text=Pasta', category: 'Principal', isAvailable: true }
-    ]);
+    loadData();
+  }, []);
 
-    setOrders([
-      { id: 'ORD-001', items: [{ productId: '1', name: 'Hamburguesa Gourmet', quantity: 2, price: 12.99 }], total: 25.98, status: 'completed', date: '2025-11-20', customer: 'Juan Pérez', phone: '123456789', email: 'juan@example.com', address: 'Calle Principal 123, Madrid', paymentMethod: 'CARD' },
-      { id: 'ORD-002', items: [{ productId: '2', name: 'Pizza Margarita', quantity: 1, price: 10.99 }], total: 10.99, status: 'pending', date: '2025-11-21', customer: 'María García', phone: '987654321', email: 'maria@example.com', address: 'Avenida Secundaria 456, Barcelona', paymentMethod: 'CASH' },
-      { id: 'ORD-003', items: [{ productId: '3', name: 'Ensalada César', quantity: 1, price: 8.99 }], total: 8.99, status: 'preparing', date: '2025-11-22', customer: 'Carlos López', phone: '456789123', email: 'carlos@example.com', address: 'Calle Tercera 789, Valencia', paymentMethod: 'CARD' }
-    ]);
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([loadProducts(), loadOrders(), loadCustomers()]);
+    } catch (error) {
+      console.error('Error loading admin data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Calculate stats
+  const loadCustomers = async () => {
+    try {
+      const data = await adminAPI.getAllCustomers();
+      const customersList = data.customers || data || [];
+      setCustomers(customersList);
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      setCustomers([]);
+    }
+  };
+
+  const loadProducts = async () => {
+    try {
+      const data = await productsAPI.getAll();
+      setProducts(data.products || data || []);
+    } catch (error) {
+      console.error('Error loading products:', error);
+      setProducts([]);
+    }
+  };
+
+  const loadOrders = async () => {
+    try {
+      const data = await adminAPI.getAllOrders();
+      const ordersList = data.orders || data || [];
+      setOrders(ordersList);
+      calculateStats(ordersList);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      setOrders([]);
+    }
+  };
+
+  const calculateStats = (ordersList) => {
     const today = new Date().toISOString().split('T')[0];
-    const todayOrders = orders.filter(order => order.date === today);
-    const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
+    const todayOrders = ordersList.filter(order => {
+      const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+      return orderDate === today;
+    });
+    const todayRevenue = todayOrders.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
 
     setStats({
       todayOrders: todayOrders.length,
       todayRevenue: todayRevenue
     });
-  }, []);
-
-  const handleAdminOrderStatus = (orderId, newStatus) => {
-    setOrders(orders.map(order =>
-      order.id === orderId
-        ? { ...order, status: newStatus }
-        : order
-    ));
   };
 
-  const handleDeleteProduct = (productId) => {
-    setProducts(products.filter(product => product.id !== productId));
+  const handleAdminOrderStatus = async (orderId, newStatus) => {
+    try {
+      await adminAPI.updateOrderStatus(orderId, newStatus);
+      // Recargar pedidos después de actualizar
+      await loadOrders();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Error al actualizar el estado del pedido');
+    }
   };
 
-  const handleAddProduct = () => {
-    alert('Funcionalidad de agregar producto');
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+      return;
+    }
+    // Nota: La API no tiene endpoint de delete, pero podemos marcarlo como no disponible
+    try {
+      await adminAPI.updateProduct(productId, { isAvailable: false });
+      await loadProducts();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Error al eliminar el producto');
+    }
   };
 
-  const handleEditProduct = (product) => {
-    alert(`Editar producto: ${product.name}`);
+  const handleAddProduct = async (productData) => {
+    try {
+      await adminAPI.createProduct(productData);
+      await loadProducts();
+      return true;
+    } catch (error) {
+      console.error('Error adding product:', error);
+      alert('Error al agregar el producto: ' + (error.response?.data?.detail || error.message));
+      return false;
+    }
   };
+
+  const handleEditProduct = async (productId, productData) => {
+    try {
+      await adminAPI.updateProduct(productId, productData);
+      await loadProducts();
+      return true;
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert('Error al actualizar el producto: ' + (error.response?.data?.detail || error.message));
+      return false;
+    }
+  };
+
+  if (loading) {
+    return (
+      <AdminLayout switchToClient={switchToClient} adminUser={adminUser} onLogout={onLogout}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando datos...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
-    <AdminLayout switchToClient={switchToClient}>
+    <AdminLayout switchToClient={switchToClient} adminUser={adminUser} onLogout={onLogout}>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Panel de Control</h3>
             <nav className="space-y-2">
-              <a href="#" className="flex items-center space-x-2 p-2 bg-blue-50 text-blue-600 rounded-lg">
+              <button
+                onClick={() => setActiveView('orders')}
+                className={`w-full flex items-center space-x-2 p-2 rounded-lg transition-colors ${
+                  activeView === 'orders'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
                 <Package2 className="w-4 h-4" />
                 <span>Pedidos</span>
-              </a>
-              <a href="#" className="flex items-center space-x-2 p-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-                <DollarSign className="w-4 h-4" />
-                <span>Finanzas</span>
-              </a>
-              <a href="#" className="flex items-center space-x-2 p-2 text-gray-600 hover:bg-gray-50 rounded-lg">
+              </button>
+              <button
+                onClick={() => setActiveView('products')}
+                className={`w-full flex items-center space-x-2 p-2 rounded-lg transition-colors ${
+                  activeView === 'products'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
                 <Edit className="w-4 h-4" />
                 <span>Productos</span>
-              </a>
-              <a href="#" className="flex items-center space-x-2 p-2 text-gray-600 hover:bg-gray-50 rounded-lg">
+              </button>
+              <button
+                onClick={() => setActiveView('customers')}
+                className={`w-full flex items-center space-x-2 p-2 rounded-lg transition-colors ${
+                  activeView === 'customers'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
                 <User className="w-4 h-4" />
                 <span>Clientes</span>
-              </a>
+              </button>
             </nav>
           </div>
 
@@ -105,34 +203,30 @@ const AdminPage = ({ switchToClient }) => {
 
         {/* Main Content */}
         <div className="lg:col-span-3">
-          <OrderManagement
-            orders={orders}
-            onStatusChange={handleAdminOrderStatus}
-          />
+          {activeView === 'orders' && (
+            <OrderManagement
+              orders={orders}
+              onStatusChange={handleAdminOrderStatus}
+            />
+          )}
 
-          <div className="mt-8">
+          {activeView === 'products' && (
             <ProductManagement
               products={products}
               onAddProduct={handleAddProduct}
               onEditProduct={handleEditProduct}
               onDeleteProduct={handleDeleteProduct}
             />
-          </div>
+          )}
+
+          {activeView === 'customers' && (
+            <CustomerManagement
+              customers={customers}
+              loading={loading}
+            />
+          )}
         </div>
       </div>
-      
-      {/* Botón flotante para cambiar a vista cliente */}
-      <button
-        onClick={switchToClient}
-        className="fixed bottom-8 right-8 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 flex items-center gap-2"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
-        </svg>
-        Ir a Vista Cliente
-      </button>
     </AdminLayout>
   );
 };

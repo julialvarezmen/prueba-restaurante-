@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
-from services.database_service import get_all_orders, update_order_status, create_product, update_product
+from services.database_service import get_all_orders, update_order_status, create_product, update_product, get_all_customers_with_addresses
 from routers.auth import get_current_user
 
 router = APIRouter()
@@ -126,4 +126,14 @@ async def update_existing_product(
         "message": "Product updated successfully",
         "product": product
     }
+
+@router.get("/customers")
+async def get_all_customers(current_user: dict = Depends(get_current_user)):
+    """Obtener todos los clientes con sus direcciones (solo admin)"""
+    user_role = current_user.get("role")
+    if user_role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    customers = await get_all_customers_with_addresses()
+    return {"customers": customers}
 

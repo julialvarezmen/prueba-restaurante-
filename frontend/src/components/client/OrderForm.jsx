@@ -19,14 +19,19 @@ const OrderForm = ({
   const handleAddAddress = async (addressData) => {
     try {
       setIsLoading(true);
-      const newAddress = await addressesAPI.create(addressData);
+      const response = await addressesAPI.create(addressData);
+      // La API devuelve { message: "...", address: {...} }
+      const newAddress = response.address || response;
       onAddressAdded(newAddress);
       setShowAddressForm(false);
       // Select the newly added address
-      onAddressChange({ target: { value: newAddress.id } });
+      if (newAddress && newAddress.id) {
+        onAddressChange({ target: { value: newAddress.id } });
+      }
     } catch (error) {
       console.error('Error adding address:', error);
-      alert('Error al guardar la dirección. Por favor intente nuevamente.');
+      const errorMessage = error.response?.data?.detail || error.message || 'Error desconocido';
+      alert(`Error al guardar la dirección: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

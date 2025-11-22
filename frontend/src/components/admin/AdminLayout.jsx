@@ -1,7 +1,7 @@
 import React from 'react';
-import { Package, User } from 'lucide-react';
+import { Package, User, LogOut } from 'lucide-react';
 
-const AdminLayout = ({ children, switchToClient }) => {
+const AdminLayout = ({ children, switchToClient, adminUser, onLogout }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Admin Header */}
@@ -18,17 +18,29 @@ const AdminLayout = ({ children, switchToClient }) => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={switchToClient}
-                className="text-gray-600 hover:text-blue-600 font-semibold"
+                className="text-gray-600 hover:text-blue-600 font-semibold transition-colors"
               >
-                Cliente
+                Vista Cliente
               </button>
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-800">Administrador</p>
-                <p className="text-xs text-gray-600">admin@restaurante.com</p>
+                <p className="text-sm font-medium text-gray-800">
+                  {adminUser?.name || 'Administrador'}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {adminUser?.email || 'admin@restaurante.com'}
+                </p>
               </div>
               <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-white" />
               </div>
+              <button
+                onClick={onLogout}
+                className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Cerrar sesión"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm font-medium">Salir</span>
+              </button>
             </div>
           </div>
         </div>

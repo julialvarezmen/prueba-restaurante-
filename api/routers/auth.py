@@ -87,5 +87,17 @@ async def login(request: LoginRequest):
 @router.get("/profile")
 async def get_profile(current_user: dict = Depends(get_current_user)):
     """Obtener perfil del usuario actual"""
-    return {"userId": current_user["userId"], "role": current_user["role"]}
+    # Obtener información completa del usuario desde la base de datos
+    from services.database_service import get_user_by_email
+    user_id = current_user.get("userId")
+    
+    # Buscar usuario por ID (necesitamos una función para esto o usar email)
+    # Por ahora, devolvemos lo que tenemos en el token
+    return {
+        "id": current_user.get("userId"),
+        "userId": current_user.get("userId"),
+        "role": current_user.get("role"),
+        "email": current_user.get("email", ""),
+        "name": current_user.get("name", "")
+    }
 

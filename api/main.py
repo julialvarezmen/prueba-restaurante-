@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from database import engine, Base, get_db
 from routers import auth, products, orders, admin, addresses
+from init_db import init_database, check_tables_exist, create_admin_user
 
 load_dotenv()
 
@@ -14,9 +15,34 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    async with engine.begin() as conn:
-        # No creamos tablas aquí, usamos Prisma desde el worker
-        pass
+    print("🚀 Inicializando base de datos...")
+    try:
+        # Verificar si las tablas existen
+        tables_exist = await check_tables_exist()
+        if not tables_exist:
+            print("📊 Creando tablas en la base de datos...")
+            success = await init_database()
+            if success:
+                print("✅ Base de datos inicializada correctamente")
+            else:
+                print("⚠️  Advertencia: No se pudieron crear todas las tablas")
+                # Intentar forzar creación de nuevo
+                print("🔄 Intentando forzar creación de tablas...")
+                await init_database()
+        else:
+            print("✅ Las tablas ya existen en la base de datos")
+            # Asegurar que el usuario admin existe
+            await create_admin_user()
+    except Exception as e:
+        print(f"⚠️  Error al verificar/inicializar base de datos: {e}")
+        import traceback
+        traceback.print_exc()
+        print("   Intentando forzar creación de tablas...")
+        try:
+            await init_database()
+        except Exception as e2:
+            print(f"   ❌ Error al forzar creación: {e2}")
+            print("   Continuando de todas formas...")
     yield
     # Shutdown
     pass

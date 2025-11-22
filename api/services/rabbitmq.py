@@ -1,6 +1,7 @@
 import aio_pika
 import json
 import os
+import uuid
 from typing import Dict, Any
 from datetime import datetime
 
@@ -15,11 +16,22 @@ def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
     if isinstance(obj, datetime):
         return obj.isoformat()
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
     raise TypeError(f"Type {type(obj)} not serializable")
 
 async def publish_order(order_data: Dict[str, Any]):
     """
     Publicar mensaje de pedido a la cola order_queue
+    El formato debe ser compatible con el worker que espera:
+    {
+        "orderId": str,
+        "userId": str,
+        "addressId": str,
+        "items": [...],
+        "total": float,
+        "notes": str (opcional)
+    }
     """
     try:
         connection = await get_connection()
@@ -28,8 +40,27 @@ async def publish_order(order_data: Dict[str, Any]):
         # Declarar cola (si no existe, se crea)
         queue = await channel.declare_queue(QUEUE_NAME, durable=True)
         
-        # Publicar mensaje (convertir datetime a ISO format)
-        message_body = json.dumps(order_data, default=json_serial)
+        # Formatear mensaje para el worker
+        # Asegurar que los items tengan el formato correcto (productId, quantity, price)
+        items = []
+        for item in order_data.get("items", []):
+            items.append({
+                "productId": str(item.get("productId", item.get("product_id", ""))),
+                "quantity": int(item.get("quantity", 0)),
+                "price": float(item.get("price", 0))
+            })
+        
+        message = {
+            "orderId": str(order_data.get("id", "")),
+            "userId": str(order_data.get("userId", "")),
+            "addressId": str(order_data.get("addressId", "")),
+            "items": items,
+            "total": float(order_data.get("total", 0)),
+            "notes": order_data.get("notes")
+        }
+        
+        # Publicar mensaje (convertir datetime y UUID a formatos serializables)
+        message_body = json.dumps(message, default=json_serial)
         await channel.default_exchange.publish(
             aio_pika.Message(
                 body=message_body.encode(),
@@ -38,10 +69,12 @@ async def publish_order(order_data: Dict[str, Any]):
             routing_key=QUEUE_NAME
         )
         
-        print(f"✅ Mensaje publicado a {QUEUE_NAME}: {order_data.get('id')}")
+        print(f"✅ Mensaje publicado a {QUEUE_NAME}: {message.get('orderId')}")
         await connection.close()
         return True
     except Exception as e:
         print(f"❌ Error publicando mensaje: {e}")
+        import traceback
+        traceback.print_exc()
         raise
 
