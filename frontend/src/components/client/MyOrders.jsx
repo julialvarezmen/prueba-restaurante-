@@ -13,7 +13,7 @@ const MyOrders = ({ user, toast }) => {
       const interval = setInterval(loadOrders, 10000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadOrders = async () => {
     if (!user) return;

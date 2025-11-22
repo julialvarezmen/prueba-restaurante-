@@ -12,12 +12,27 @@ const api = axios.create({
 });
 
 // Add token to requests if available
+// Usa el token apropiado según el contexto (admin o cliente)
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  // Determinar si es una petición de admin o cliente basado en la URL
+  const url = config.url || '';
+  const isAdminRequest = url.includes('/admin/') || url.startsWith('/admin');
+  
+  // Obtener el token apropiado
+  let token = null;
+  if (isAdminRequest) {
+    token = localStorage.getItem('adminToken');
+  } else {
+    token = localStorage.getItem('clientToken');
+  }
+  
+  // Si no hay token específico, intentar con el genérico (para compatibilidad)
+  if (!token) {
+    token = localStorage.getItem('token');
+  }
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.warn('No authentication token found');
   }
   return config;
 }, (error) => {
@@ -41,12 +56,26 @@ api.interceptors.response.use(
 export const authAPI = {
   register: async (userData) => {
     const response = await api.post('/auth/register', userData);
+    // Si el registro devuelve token, guardarlo como cliente
+    if (response.data.token) {
+      localStorage.setItem('clientToken', response.data.token);
+      localStorage.setItem('clientUser', JSON.stringify(response.data.user));
+    }
     return response.data;
   },
 
-  login: async (credentials) => {
+  login: async (credentials, isAdmin = false) => {
     const response = await api.post('/auth/login', credentials);
     if (response.data.token) {
+      // Guardar token según el tipo de usuario
+      if (isAdmin) {
+        localStorage.setItem('adminToken', response.data.token);
+        localStorage.setItem('adminUser', JSON.stringify(response.data.user));
+      } else {
+        localStorage.setItem('clientToken', response.data.token);
+        localStorage.setItem('clientUser', JSON.stringify(response.data.user));
+      }
+      // Mantener compatibilidad con 'token' para requests que no especifican contexto
       localStorage.setItem('token', response.data.token);
     }
     return response.data;

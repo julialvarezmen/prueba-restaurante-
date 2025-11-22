@@ -1,6 +1,7 @@
 import asyncpg
 import os
 import uuid
+from datetime import datetime, date
 from typing import List, Dict, Any, Optional
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -10,14 +11,25 @@ async def get_connection():
     return await asyncpg.connect(DATABASE_URL)
 
 def convert_uuid_to_str(data: Any) -> Any:
-    """Convertir UUIDs a strings en diccionarios o listas"""
+    """Convertir UUIDs y fechas a strings en diccionarios o listas"""
     if isinstance(data, dict):
-        return {k: str(v) if isinstance(v, uuid.UUID) else convert_uuid_to_str(v) for k, v in data.items()}
+        return {k: convert_value(v) for k, v in data.items()}
     elif isinstance(data, list):
         return [convert_uuid_to_str(item) for item in data]
-    elif isinstance(data, uuid.UUID):
-        return str(data)
-    return data
+    else:
+        return convert_value(data)
+
+def convert_value(value: Any) -> Any:
+    """Convertir un valor individual (UUID, fecha, etc.) a string si es necesario"""
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    elif isinstance(value, (datetime, date)):
+        return value.isoformat()
+    elif isinstance(value, dict):
+        return convert_uuid_to_str(value)
+    elif isinstance(value, list):
+        return [convert_uuid_to_str(item) for item in value]
+    return value
 
 async def get_products(category: Optional[str] = None, available: Optional[bool] = None) -> List[Dict[str, Any]]:
     """Obtener lista de productos"""

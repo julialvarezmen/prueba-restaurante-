@@ -6,7 +6,7 @@ import OrderForm from '../components/client/OrderForm';
 import MyOrders from '../components/client/MyOrders';
 import { authAPI, productsAPI, ordersAPI, addressesAPI } from '../utils/api';
 
-const ClientPage = ({ switchToAdmin, toast }) => {
+const ClientPage = ({ switchToAdmin, toast, adminUser = null, isAdminView = false }) => {
   const [user, setUser] = useState(null);
   const [cart, setCart] = useState([]);
   const [products, setProducts] = useState([]);
@@ -27,21 +27,42 @@ const ClientPage = ({ switchToAdmin, toast }) => {
 
   // Load real data from API
   useEffect(() => {
+    // Guardar la vista actual si es vista de cliente normal
+    if (!isAdminView) {
+      localStorage.setItem('lastView', 'client');
+    }
+    
     loadProducts();
-    loadAddresses();
-    loadOrders();
-    checkAuth();
-  }, []);
+    if (!isAdminView) {
+      loadAddresses();
+      loadOrders();
+      checkAuth();
+    } else if (adminUser) {
+      // Si es vista de admin, usar el usuario admin pero sin funcionalidad de pedidos
+      setUser({
+        ...adminUser,
+        role: 'ADMIN'
+      });
+    }
+  }, [isAdminView, adminUser]);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('token');
+    // Si es vista de admin, no verificar autenticación de cliente
+    if (isAdminView) {
+      return;
+    }
+    
+    // Usar token de cliente específico
+    const token = localStorage.getItem('clientToken');
     if (token) {
       try {
+        // Usar el token de cliente para obtener el perfil
         const profile = await authAPI.getProfile();
         setUser(profile);
       } catch (error) {
         console.error('Error loading profile:', error);
-        localStorage.removeItem('token');
+        localStorage.removeItem('clientToken');
+        localStorage.removeItem('clientUser');
       }
     }
   };
@@ -58,7 +79,12 @@ const ClientPage = ({ switchToAdmin, toast }) => {
   };
 
   const loadAddresses = async () => {
-    const token = localStorage.getItem('token');
+    // Si es vista de admin, no cargar direcciones
+    if (isAdminView) {
+      return;
+    }
+    
+    const token = localStorage.getItem('clientToken');
     if (!token) return; // Skip if not authenticated
     
     try {
@@ -93,7 +119,12 @@ const ClientPage = ({ switchToAdmin, toast }) => {
   };
 
   const loadOrders = async () => {
-    const token = localStorage.getItem('token');
+    // Si es vista de admin, no cargar pedidos del cliente
+    if (isAdminView) {
+      return;
+    }
+    
+    const token = localStorage.getItem('clientToken');
     if (!token) return; // Skip if not authenticated
     
     try {
@@ -140,13 +171,19 @@ const ClientPage = ({ switchToAdmin, toast }) => {
   };
 
   const handlePlaceOrder = async () => {
+    // Si es vista de admin, no permitir crear pedidos
+    if (isAdminView) {
+      toast.warning('Los administradores no pueden realizar pedidos desde esta vista');
+      return;
+    }
+    
     if (cart.length === 0) {
       toast.warning('El carrito está vacío');
       return;
     }
 
     // Validación estricta: solo usuarios autenticados pueden crear pedidos
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('clientToken');
     if (!token || !user) {
       toast.error('Debes iniciar sesión para realizar un pedido');
       setShowLogin(true);
@@ -193,7 +230,9 @@ const ClientPage = ({ switchToAdmin, toast }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    // Solo remover token y datos de cliente, no afectar admin
+    localStorage.removeItem('clientToken');
+    localStorage.removeItem('clientUser');
     setUser(null);
     setAddresses([]);
     setOrders([]);
@@ -204,11 +243,14 @@ const ClientPage = ({ switchToAdmin, toast }) => {
 
   const handleLogin = async () => {
     try {
-      const response = await authAPI.login(loginData);
+      // Login como cliente (no admin)
+      const response = await authAPI.login(loginData, false);
       setUser(response.user);
       setShowLogin(false);
       setLoginData({ email: '', password: '' });
       toast.success('¡Bienvenido!');
+      // Guardar que estamos en vista de cliente
+      localStorage.setItem('lastView', 'client');
       loadAddresses();
       loadOrders();
     } catch (error) {
@@ -220,10 +262,21 @@ const ClientPage = ({ switchToAdmin, toast }) => {
 
   const handleRegister = async () => {
     try {
-      await authAPI.register(registerData);
-      toast.success('¡Registro exitoso! Ahora puedes iniciar sesión.');
-      setShowRegister(false);
-      setShowLogin(true);
+      const response = await authAPI.register(registerData);
+      // El registro ya guarda el token en authAPI.register
+      if (response.user) {
+        setUser(response.user);
+        toast.success('¡Registro exitoso! Bienvenido.');
+        setShowRegister(false);
+        // Guardar que estamos en vista de cliente
+        localStorage.setItem('lastView', 'client');
+        loadAddresses();
+        loadOrders();
+      } else {
+        toast.success('¡Registro exitoso! Ahora puedes iniciar sesión.');
+        setShowRegister(false);
+        setShowLogin(true);
+      }
       setRegisterData({ email: '', password: '', name: '', phone: '' });
     } catch (error) {
       console.error('Error registering:', error);
@@ -292,20 +345,22 @@ const ClientPage = ({ switchToAdmin, toast }) => {
                 totalPrice={getTotalPrice()}
               />
 
-              <OrderForm
-                addresses={addresses}
-                orderForm={orderForm}
-                onAddressChange={(e) => setOrderForm({...orderForm, addressId: e.target.value})}
-                onNotesChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
-                onPaymentMethodChange={(method) => setOrderForm({...orderForm, paymentMethod: method})}
-                onPlaceOrder={handlePlaceOrder}
-                onAddressAdded={handleAddressAdded}
-                disabled={cart.length === 0 || !user}
-              />
+              {!isAdminView && (
+                <OrderForm
+                  addresses={addresses}
+                  orderForm={orderForm}
+                  onAddressChange={(e) => setOrderForm({...orderForm, addressId: e.target.value})}
+                  onNotesChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
+                  onPaymentMethodChange={(method) => setOrderForm({...orderForm, paymentMethod: method})}
+                  onPlaceOrder={handlePlaceOrder}
+                  onAddressAdded={handleAddressAdded}
+                  disabled={cart.length === 0 || !user}
+                />
+              )}
             </div>
           </div>
         ) : (
-          <MyOrders user={user} toast={toast} />
+          !isAdminView && <MyOrders user={user} toast={toast} />
         )}
       </ClientLayout>
 
@@ -354,18 +409,20 @@ const ClientPage = ({ switchToAdmin, toast }) => {
         </div>
       )}
       
-      {/* Botón discreto para ir a vista admin - Solo visible en la esquina */}
-      <button
-        onClick={switchToAdmin}
-        className="fixed bottom-4 right-4 bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg shadow-md transition-all duration-300 opacity-50 hover:opacity-100 z-40"
-        title="Panel de Administración"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
-        </svg>
-      </button>
+      {/* Botón discreto para ir a vista admin - Solo visible si no es vista de admin */}
+      {!isAdminView && switchToAdmin && (
+        <button
+          onClick={switchToAdmin}
+          className="fixed bottom-4 right-4 bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg shadow-md transition-all duration-300 opacity-50 hover:opacity-100 z-40"
+          title="Panel de Administración"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </button>
+      )}
 
       {/* Register Modal */}
       {showRegister && (

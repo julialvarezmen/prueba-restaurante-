@@ -18,6 +18,13 @@ const AdminPage = ({ switchToClient, adminUser, onLogout, toast }) => {
   // Load real data from API
   useEffect(() => {
     loadData();
+    
+    // Actualizar datos cada 5 segundos para mantener estadísticas actualizadas
+    const interval = setInterval(() => {
+      loadOrders(); // Recargar pedidos actualiza las estadísticas
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadData = async () => {
@@ -65,12 +72,62 @@ const AdminPage = ({ switchToClient, adminUser, onLogout, toast }) => {
   };
 
   const calculateStats = (ordersList) => {
-    const today = new Date().toISOString().split('T')[0];
+    if (!ordersList || ordersList.length === 0) {
+      setStats({ todayOrders: 0, todayRevenue: 0 });
+      return;
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Filtrar solo pedidos del día actual y que no estén cancelados
     const todayOrders = ordersList.filter(order => {
-      const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-      return orderDate === today;
+      if (!order.createdAt) {
+        console.warn('Order without createdAt:', order.id);
+        return false;
+      }
+      
+      try {
+        // Manejar diferentes formatos de fecha
+        let orderDate;
+        if (typeof order.createdAt === 'string') {
+          orderDate = new Date(order.createdAt);
+        } else if (order.createdAt instanceof Date) {
+          orderDate = order.createdAt;
+        } else {
+          console.warn('Invalid date format:', order.createdAt);
+          return false;
+        }
+        
+        // Verificar que la fecha sea válida
+        if (isNaN(orderDate.getTime())) {
+          console.warn('Invalid date:', order.createdAt);
+          return false;
+        }
+        
+        // Comparar solo la fecha (sin hora)
+        const orderDateOnly = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate());
+        const isToday = orderDateOnly.getTime() === today.getTime();
+        const isNotCancelled = order.status?.toLowerCase() !== 'cancelled';
+        
+        return isToday && isNotCancelled;
+      } catch (error) {
+        console.error('Error processing order date:', error, order);
+        return false;
+      }
     });
-    const todayRevenue = todayOrders.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
+    
+    // Calcular ingresos solo de pedidos no cancelados del día
+    const todayRevenue = todayOrders.reduce((sum, order) => {
+      const total = parseFloat(order.total) || 0;
+      return sum + total;
+    }, 0);
+
+    console.log('Stats calculated:', {
+      totalOrders: ordersList.length,
+      todayOrders: todayOrders.length,
+      todayRevenue: todayRevenue
+    });
 
     setStats({
       todayOrders: todayOrders.length,

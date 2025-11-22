@@ -18,14 +18,16 @@ const AdminLogin = ({ onLoginSuccess, toast }) => {
       // Verificar que el usuario sea ADMIN
       if (response.user.role !== 'ADMIN') {
         setError('Acceso denegado. Solo administradores pueden acceder.');
-        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
         setLoading(false);
         return;
       }
 
-      // Guardar token y datos del usuario
-      localStorage.setItem('token', response.token);
+      // Guardar token y datos del usuario admin (sesión independiente)
+      localStorage.setItem('adminToken', response.token);
       localStorage.setItem('adminUser', JSON.stringify(response.user));
+      // No guardar en 'token' para mantener sesiones independientes
       
       // Llamar callback de éxito
       onLoginSuccess(response.user);
