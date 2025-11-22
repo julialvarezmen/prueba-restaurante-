@@ -1,25 +1,77 @@
-import React from 'react';
+import React, { useState } from 'react';
+import AddressForm from './AddressForm';
+import { addressesAPI } from '../../utils/api';
 
-const OrderForm = ({ addresses, orderForm, onAddressChange, onNotesChange, onPaymentMethodChange, onPlaceOrder, disabled }) => {
+const OrderForm = ({ 
+  addresses = [], 
+  orderForm, 
+  onAddressChange, 
+  onNotesChange, 
+  onPaymentMethodChange, 
+  onPlaceOrder, 
+  onAddressAdded,
+  isLoadingAddressAdded,
+  disabled 
+}) => {
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleAddAddress = async (addressData) => {
+    try {
+      setIsLoading(true);
+      const newAddress = await addressesAPI.create(addressData);
+      onAddressAdded(newAddress);
+      setShowAddressForm(false);
+      // Select the newly added address
+      onAddressChange({ target: { value: newAddress.id } });
+    } catch (error) {
+      console.error('Error adding address:', error);
+      alert('Error al guardar la dirección. Por favor intente nuevamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <h3 className="text-xl font-semibold text-gray-800 mb-4">Formulario de Pedido</h3>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Dirección de entrega</label>
-          <select
-            value={orderForm.addressId}
-            onChange={onAddressChange}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            <option value="">Seleccionar dirección</option>
-            {(addresses || []).map(addr => (
-              <option key={addr.id} value={addr.id}>
-                {addr.street}, {addr.city}
-              </option>
-            ))}
-          </select>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-medium text-gray-700">Dirección de entrega</label>
+            {!showAddressForm && (
+              <button
+                type="button"
+                onClick={() => setShowAddressForm(true)}
+                className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+              >
+                + Agregar dirección
+              </button>
+            )}
+          </div>
+          
+          {showAddressForm ? (
+            <div className="mb-4">
+              <AddressForm 
+                onSave={handleAddAddress} 
+                onCancel={() => setShowAddressForm(false)} 
+              />
+            </div>
+          ) : (
+            <select
+              value={orderForm.addressId}
+              onChange={onAddressChange}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent mb-4"
+              required
+            >
+              <option value="">Seleccionar dirección</option>
+              {addresses.map(addr => (
+                <option key={addr.id} value={addr.id}>
+                  {addr.street}, {addr.city} {addr.isDefault ? '(Principal)' : ''}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div>
@@ -63,7 +115,7 @@ const OrderForm = ({ addresses, orderForm, onAddressChange, onNotesChange, onPay
 
         <button
           onClick={onPlaceOrder}
-          disabled={disabled}
+          disabled={disabled || isLoading}
           className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed font-semibold"
         >
           Confirmar Pedido

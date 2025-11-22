@@ -62,11 +62,32 @@ const ClientPage = ({ switchToAdmin }) => {
     try {
       const data = await addressesAPI.getAll();
       // API returns {addresses: [...]} so we need to extract the array
-      setAddresses(data.addresses || data || []);
+      const addressesList = data.addresses || data || [];
+      setAddresses(addressesList);
+      
+      // Set default address if none selected and addresses exist
+      if (orderForm.addressId === '' && addressesList.length > 0) {
+        const defaultAddress = addressesList.find(addr => addr.isDefault) || addressesList[0];
+        if (defaultAddress) {
+          setOrderForm(prev => ({
+            ...prev,
+            addressId: defaultAddress.id
+          }));
+        }
+      }
     } catch (error) {
       console.error('Error loading addresses:', error);
       setAddresses([]); // Set empty array on error
     }
+  };
+  
+  const handleAddressAdded = (newAddress) => {
+    setAddresses(prev => [...prev, newAddress]);
+    // Optionally set the new address as selected
+    setOrderForm(prev => ({
+      ...prev,
+      addressId: newAddress.id
+    }));
   };
 
   const loadOrders = async () => {
@@ -231,7 +252,8 @@ const ClientPage = ({ switchToAdmin }) => {
               onNotesChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
               onPaymentMethodChange={(method) => setOrderForm({...orderForm, paymentMethod: method})}
               onPlaceOrder={handlePlaceOrder}
-              disabled={!orderForm.addressId || cart.length === 0}
+              onAddressAdded={handleAddressAdded}
+              disabled={cart.length === 0 || !user}
             />
           </div>
         </div>

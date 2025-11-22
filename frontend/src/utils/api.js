@@ -16,9 +16,26 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('No authentication token found');
   }
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
+
+// Add response interceptor to handle 401 Unauthorized
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.error('Authentication failed:', error.response.data);
+      // Opcional: Redirigir al usuario a la página de inicio de sesión
+      // window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Authentication
 export const authAPI = {

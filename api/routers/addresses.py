@@ -10,10 +10,15 @@ class AddressCreate(BaseModel):
     street: str
     city: str
     state: str
-    zipCode: str
+    zip_code: str  # Cambiado de zipCode a zip_code
     country: str = "Colombia"
-    isDefault: bool = False
+    is_default: bool = False  # Cambiado de isDefault a is_default
     instructions: Optional[str] = None
+    
+    class Config:
+        # Esto permite usar tanto snake_case como camelCase en el JSON
+        alias_generator = lambda s: s.replace('_', '')  # Convierte snake_case a camelCase
+        allow_population_by_field_name = True
 
 @router.post("/addresses", status_code=status.HTTP_201_CREATED)
 async def create_user_address(
@@ -27,9 +32,9 @@ async def create_user_address(
             street=address.street,
             city=address.city,
             state=address.state,
-            zip_code=address.zipCode,
+            zip_code=address.zip_code,
             country=address.country,
-            is_default=address.isDefault,
+            is_default=address.is_default,
             instructions=address.instructions
         )
         

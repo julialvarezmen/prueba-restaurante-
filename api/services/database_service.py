@@ -211,6 +211,14 @@ async def create_address(user_id: str, street: str, city: str, state: str, zip_c
     """Crear nueva dirección"""
     conn = await get_connection()
     try:
+        # Primero, si is_default es True, desmarcar cualquier otra dirección como predeterminada
+        if is_default:
+            await conn.execute(
+                'UPDATE addresses SET "isDefault" = false WHERE "userId" = $1',
+                user_id
+            )
+            
+        # Insertar la nueva dirección
         address_id = await conn.fetchval(
             """
             INSERT INTO addresses (id, "userId", street, city, state, "zipCode", country, "isDefault", instructions, "createdAt", "updatedAt")
@@ -220,6 +228,7 @@ async def create_address(user_id: str, street: str, city: str, state: str, zip_c
             user_id, street, city, state, zip_code, country, is_default, instructions
         )
         
+        # Obtener la dirección recién creada
         address = await conn.fetchrow(
             'SELECT id, "userId", street, city, state, "zipCode", country, "isDefault", instructions FROM addresses WHERE id = $1',
             address_id
