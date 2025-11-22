@@ -3,6 +3,8 @@ import AdminLayout from '../components/admin/AdminLayout';
 import OrderManagement from '../components/admin/OrderManagement';
 import ProductManagement from '../components/admin/ProductManagement';
 import StatsCard from '../components/admin/StatsCard';
+import { Package2, DollarSign, Edit, User } from 'lucide-react';
+
 
 const AdminPage = ({ switchToClient }) => {
   const [orders, setOrders] = useState([]);
@@ -66,7 +68,7 @@ const AdminPage = ({ switchToClient }) => {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Panel de Control</h3>
             <nav className="space-y-2">
               <a href="#" className="flex items-center space-x-2 p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <Package className="w-4 h-4" />
+                <Package2 className="w-4 h-4" />
                 <span>Pedidos</span>
               </a>
               <a href="#" className="flex items-center space-x-2 p-2 text-gray-600 hover:bg-gray-50 rounded-lg">
@@ -89,7 +91,7 @@ const AdminPage = ({ switchToClient }) => {
             <StatsCard
               title="Pedidos Hoy"
               value={stats.todayOrders}
-              icon={Package}
+              icon={Package2}
               color="bg-blue-100"
             />
             <StatsCard
@@ -118,6 +120,19 @@ const AdminPage = ({ switchToClient }) => {
           </div>
         </div>
       </div>
+      
+      {/* Botón flotante para cambiar a vista cliente */}
+      <button
+        onClick={switchToClient}
+        className="fixed bottom-8 right-8 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 flex items-center gap-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        Ir a Vista Cliente
+      </button>
     </AdminLayout>
   );
 };
