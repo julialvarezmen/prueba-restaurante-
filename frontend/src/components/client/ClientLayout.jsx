@@ -14,7 +14,7 @@ const ClientLayout = ({ children, user, cartCount, onLogin, onCartClick, onLogou
               <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
                 <Menu className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-800">Restaurante Delicioso</h1>
+              <h1 className="text-2xl font-bold text-gray-800">SoftDomiFood</h1>
             </div>
 
             <div className="flex items-center space-x-4">

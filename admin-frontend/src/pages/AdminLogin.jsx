@@ -63,7 +63,7 @@ const AdminLogin = ({ onLoginSuccess, toast }) => {
             <input
               id="email"
               type="email"
-              placeholder="admin@sofka.com"
+              placeholder="Correo Administrador"
               value={loginData.email}
               onChange={(e) => setLoginData({...loginData, email: e.target.value})}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -109,11 +109,11 @@ const AdminLogin = ({ onLoginSuccess, toast }) => {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Credenciales por defecto:
+           
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            Email: Admin@sofka.com<br />
-            Contraseña: Admin 123
+            <br />
+            
           </p>
         </div>
       </div>
