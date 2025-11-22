@@ -95,5 +95,10 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    # Configuración segura: usar variables de entorno con valores por defecto seguros
+    # En desarrollo, usar 127.0.0.1 (solo localhost) es más seguro
+    # En producción con Docker, configurar HOST=0.0.0.0 en docker-compose.yml
+    host = os.getenv("HOST", "127.0.0.1")  # Default seguro: solo localhost
+    port = int(os.getenv("PORT", "5000"))
+    uvicorn.run(app, host=host, port=port)
 
