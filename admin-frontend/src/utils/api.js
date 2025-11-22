@@ -12,10 +12,9 @@ const api = axios.create({
 });
 
 // Add token to requests if available
-// Frontend del cliente SOLO usa clientToken, nunca adminToken
+// Para admin-frontend, siempre usar adminToken
 api.interceptors.request.use((config) => {
-  // Solo usar token de cliente
-  const token = localStorage.getItem('clientToken');
+  const token = localStorage.getItem('adminToken');
   
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -31,8 +30,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       console.error('Authentication failed:', error.response.data);
-      // Opcional: Redirigir al usuario a la página de inicio de sesión
-      // window.location.href = '/login';
+      // Redirigir al login si no está autenticado
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   }
@@ -40,29 +41,12 @@ api.interceptors.response.use(
 
 // Authentication
 export const authAPI = {
-  register: async (userData) => {
-    const response = await api.post('/auth/register', userData);
-    // Si el registro devuelve token, guardarlo como cliente
-    if (response.data.token) {
-      localStorage.setItem('clientToken', response.data.token);
-      localStorage.setItem('clientUser', JSON.stringify(response.data.user));
-    }
-    return response.data;
-  },
-
-  login: async (credentials, isAdmin = false) => {
+  login: async (credentials, isAdmin = true) => {
     const response = await api.post('/auth/login', credentials);
     if (response.data.token) {
-      // Guardar token según el tipo de usuario
-      if (isAdmin) {
-        localStorage.setItem('adminToken', response.data.token);
-        localStorage.setItem('adminUser', JSON.stringify(response.data.user));
-      } else {
-        localStorage.setItem('clientToken', response.data.token);
-        localStorage.setItem('clientUser', JSON.stringify(response.data.user));
-      }
-      // Mantener compatibilidad con 'token' para requests que no especifican contexto
-      localStorage.setItem('token', response.data.token);
+      // Guardar token de admin
+      localStorage.setItem('adminToken', response.data.token);
+      localStorage.setItem('adminUser', JSON.stringify(response.data.user));
     }
     return response.data;
   },
@@ -82,24 +66,6 @@ export const productsAPI = {
 
   getById: async (id) => {
     const response = await api.get(`/products/${id}`);
-    return response.data;
-  },
-};
-
-// Orders
-export const ordersAPI = {
-  getAll: async () => {
-    const response = await api.get('/orders');
-    return response.data;
-  },
-
-  create: async (orderData) => {
-    const response = await api.post('/orders', orderData);
-    return response.data;
-  },
-
-  getStatus: async (orderId) => {
-    const response = await api.get(`/orders/${orderId}/status`);
     return response.data;
   },
 };
@@ -128,24 +94,6 @@ export const adminAPI = {
 
   getAllCustomers: async () => {
     const response = await api.get('/admin/customers');
-    return response.data;
-  },
-};
-
-// Addresses
-export const addressesAPI = {
-  getAll: async () => {
-    const response = await api.get('/addresses');
-    return response.data;
-  },
-
-  create: async (addressData) => {
-    const response = await api.post('/addresses', addressData);
-    return response.data;
-  },
-
-  setDefault: async (addressId) => {
-    const response = await api.put(`/addresses/${addressId}/default`);
     return response.data;
   },
 };

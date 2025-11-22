@@ -57,8 +57,13 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    # Añade ambos localhost y 127.0.0.1 explícitamente
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    # Permitir ambos frontends: cliente (3000) y admin (3001)
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "http://localhost:3001", 
+        "http://127.0.0.1:3001"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -27,6 +27,25 @@ const ClientPage = ({ switchToAdmin, toast, adminUser = null, isAdminView = fals
 
   // Load real data from API
   useEffect(() => {
+    // Verificar si hay un parámetro que indique que NO debe restaurar sesión
+    const urlParams = new URLSearchParams(window.location.search);
+    const noSession = urlParams.get('noSession') === 'true';
+    
+    if (noSession) {
+      // Si viene desde admin, limpiar todos los tokens de cliente y NO restaurar sesión
+      localStorage.removeItem('clientToken');
+      localStorage.removeItem('clientUser');
+      localStorage.removeItem('token');
+      setUser(null);
+      setAddresses([]);
+      setOrders([]);
+      // Limpiar el parámetro de la URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Solo cargar productos, no autenticación ni datos del usuario
+      loadProducts();
+      return;
+    }
+    
     // Guardar la vista actual si es vista de cliente normal
     if (!isAdminView) {
       localStorage.setItem('lastView', 'client');
@@ -37,14 +56,9 @@ const ClientPage = ({ switchToAdmin, toast, adminUser = null, isAdminView = fals
       loadAddresses();
       loadOrders();
       checkAuth();
-    } else if (adminUser) {
-      // Si es vista de admin, usar el usuario admin pero sin funcionalidad de pedidos
-      setUser({
-        ...adminUser,
-        role: 'ADMIN'
-      });
     }
-  }, [isAdminView, adminUser]);
+    // Removido el caso de adminUser ya que esta es solo la app de cliente
+  }, [isAdminView]);
 
   const checkAuth = async () => {
     // Si es vista de admin, no verificar autenticación de cliente

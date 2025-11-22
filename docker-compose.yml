@@ -51,7 +51,7 @@ services:
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       JWT_EXPIRES_IN: 7d
       PORT: 5000
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: http://localhost:3000,http://localhost:3001
     ports:
       - "5000:5000"
     depends_on:
@@ -86,7 +86,7 @@ services:
       - salchipapas-network
     command: npm run dev
 
-  # Frontend React
+  # Frontend React (Cliente)
   frontend:
     build:
       context: ./frontend
@@ -100,6 +100,25 @@ services:
       - api
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - salchipapas-network
+    command: npm run dev
+
+  # Frontend React (Administración)
+  admin-frontend:
+    build:
+      context: ./admin-frontend
+      dockerfile: Dockerfile
+    container_name: salchipapas-admin-frontend
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+    volumes:
+      - ./admin-frontend:/app
       - /app/node_modules
     networks:
       - salchipapas-network
