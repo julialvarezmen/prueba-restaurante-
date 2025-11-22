@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { authAPI } from '../utils/api';
 import { Package, AlertCircle } from 'lucide-react';
 
-const AdminLogin = ({ onLoginSuccess }) => {
+const AdminLogin = ({ onLoginSuccess, toast }) => {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

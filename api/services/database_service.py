@@ -192,6 +192,18 @@ async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     finally:
         await conn.close()
 
+async def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    """Obtener usuario por ID"""
+    conn = await get_connection()
+    try:
+        user = await conn.fetchrow(
+            'SELECT id, email, name, phone, role FROM users WHERE id = $1',
+            user_id
+        )
+        return convert_uuid_to_str(dict(user)) if user else None
+    finally:
+        await conn.close()
+
 async def create_user(email: str, hashed_password: str, name: str, phone: Optional[str] = None) -> Dict[str, Any]:
     """Crear nuevo usuario"""
     conn = await get_connection()

@@ -7,7 +7,7 @@ import StatsCard from '../components/admin/StatsCard';
 import { adminAPI, productsAPI } from '../utils/api';
 import { Package2, DollarSign, Edit, User } from 'lucide-react';
 
-const AdminPage = ({ switchToClient, adminUser, onLogout }) => {
+const AdminPage = ({ switchToClient, adminUser, onLogout, toast }) => {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -83,23 +83,23 @@ const AdminPage = ({ switchToClient, adminUser, onLogout }) => {
       await adminAPI.updateOrderStatus(orderId, newStatus);
       // Recargar pedidos después de actualizar
       await loadOrders();
+      toast.success('Estado del pedido actualizado correctamente');
     } catch (error) {
       console.error('Error updating order status:', error);
-      alert('Error al actualizar el estado del pedido');
+      const errorMessage = error.response?.data?.detail || 'Error al actualizar el estado del pedido';
+      toast.error(errorMessage);
     }
   };
 
   const handleDeleteProduct = async (productId) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
-      return;
-    }
     // Nota: La API no tiene endpoint de delete, pero podemos marcarlo como no disponible
     try {
       await adminAPI.updateProduct(productId, { isAvailable: false });
       await loadProducts();
+      toast.success('Producto deshabilitado correctamente');
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Error al eliminar el producto');
+      toast.error('Error al deshabilitar el producto');
     }
   };
 
@@ -107,10 +107,12 @@ const AdminPage = ({ switchToClient, adminUser, onLogout }) => {
     try {
       await adminAPI.createProduct(productData);
       await loadProducts();
+      toast.success('Producto agregado correctamente');
       return true;
     } catch (error) {
       console.error('Error adding product:', error);
-      alert('Error al agregar el producto: ' + (error.response?.data?.detail || error.message));
+      const errorMessage = error.response?.data?.detail || error.message || 'Error al agregar el producto';
+      toast.error(errorMessage);
       return false;
     }
   };
@@ -119,10 +121,12 @@ const AdminPage = ({ switchToClient, adminUser, onLogout }) => {
     try {
       await adminAPI.updateProduct(productId, productData);
       await loadProducts();
+      toast.success('Producto actualizado correctamente');
       return true;
     } catch (error) {
       console.error('Error updating product:', error);
-      alert('Error al actualizar el producto: ' + (error.response?.data?.detail || error.message));
+      const errorMessage = error.response?.data?.detail || error.message || 'Error al actualizar el producto';
+      toast.error(errorMessage);
       return false;
     }
   };

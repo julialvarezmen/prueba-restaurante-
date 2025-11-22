@@ -97,7 +97,7 @@ export const adminAPI = {
   },
 
   updateOrderStatus: async (orderId, status) => {
-    const response = await api.put(`/admin/orders/${orderId}/status`, { status });
+    const response = await api.patch(`/admin/orders/${orderId}/status`, { status });
     return response.data;
   },
 

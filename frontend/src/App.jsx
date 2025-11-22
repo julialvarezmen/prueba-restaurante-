@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import ClientPage from './pages/ClientPage';
 import AdminPage from './pages/AdminPage';
 import AdminLogin from './pages/AdminLogin';
+import ToastContainer from './components/common/ToastContainer';
+import useToast from './hooks/useToast';
 
 function App() {
   const [currentView, setCurrentView] = useState('client'); // 'client', 'admin', 'admin-login'
   const [adminUser, setAdminUser] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     // Verificar si hay un admin autenticado al cargar
@@ -47,15 +50,17 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ToastContainer toasts={toast.toasts} removeToast={toast.removeToast} />
       {currentView === 'client' ? (
-        <ClientPage switchToAdmin={handleSwitchToAdmin} />
+        <ClientPage switchToAdmin={handleSwitchToAdmin} toast={toast} />
       ) : currentView === 'admin-login' ? (
-        <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
+        <AdminLogin onLoginSuccess={handleAdminLoginSuccess} toast={toast} />
       ) : (
         <AdminPage 
           switchToClient={() => setCurrentView('client')}
           adminUser={adminUser}
           onLogout={handleAdminLogout}
+          toast={toast}
         />
       )}
     </div>

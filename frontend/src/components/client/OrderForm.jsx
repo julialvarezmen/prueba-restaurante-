@@ -11,7 +11,8 @@ const OrderForm = ({
   onPlaceOrder, 
   onAddressAdded,
   isLoadingAddressAdded,
-  disabled 
+  disabled,
+  toast
 }) => {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,10 +29,18 @@ const OrderForm = ({
       if (newAddress && newAddress.id) {
         onAddressChange({ target: { value: newAddress.id } });
       }
+      // Mostrar mensaje de éxito
+      if (toast) {
+        toast.success('Dirección guardada correctamente');
+      }
     } catch (error) {
       console.error('Error adding address:', error);
       const errorMessage = error.response?.data?.detail || error.message || 'Error desconocido';
-      alert(`Error al guardar la dirección: ${errorMessage}`);
+      if (toast) {
+        toast.error(`Error al guardar la dirección: ${errorMessage}`);
+      } else {
+        alert(`Error al guardar la dirección: ${errorMessage}`);
+      }
     } finally {
       setIsLoading(false);
     }

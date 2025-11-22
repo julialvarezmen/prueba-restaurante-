@@ -3,14 +3,16 @@ import ClientLayout from '../components/client/ClientLayout';
 import ProductCard from '../components/client/ProductCard';
 import Cart from '../components/client/Cart';
 import OrderForm from '../components/client/OrderForm';
+import MyOrders from '../components/client/MyOrders';
 import { authAPI, productsAPI, ordersAPI, addressesAPI } from '../utils/api';
 
-const ClientPage = ({ switchToAdmin }) => {
+const ClientPage = ({ switchToAdmin, toast }) => {
   const [user, setUser] = useState(null);
   const [cart, setCart] = useState([]);
   const [products, setProducts] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [activeTab, setActiveTab] = useState('menu');
   const [orderForm, setOrderForm] = useState({
     notes: '',
     addressId: '',
@@ -139,17 +141,20 @@ const ClientPage = ({ switchToAdmin }) => {
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) {
-      alert('El carrito está vacío');
+      toast.warning('El carrito está vacío');
       return;
     }
 
-    if (!user) {
-      alert('Debes iniciar sesión para realizar un pedido');
+    // Validación estricta: solo usuarios autenticados pueden crear pedidos
+    const token = localStorage.getItem('token');
+    if (!token || !user) {
+      toast.error('Debes iniciar sesión para realizar un pedido');
+      setShowLogin(true);
       return;
     }
 
     if (!orderForm.addressId) {
-      alert('Debes seleccionar una dirección de entrega');
+      toast.warning('Debes seleccionar una dirección de entrega');
       return;
     }
 
@@ -172,13 +177,29 @@ const ClientPage = ({ switchToAdmin }) => {
       await ordersAPI.create(orderData);
       setCart([]);
       setOrderForm({ notes: '', addressId: '', paymentMethod: 'CASH' });
-      alert('¡Pedido realizado con éxito!');
+      toast.success('¡Pedido realizado con éxito!');
       loadOrders();
+      setActiveTab('orders'); // Cambiar a la pestaña de pedidos
     } catch (error) {
       console.error('Error creating order:', error);
       const errorMessage = error.response?.data?.detail || error.message || 'Error desconocido';
-      alert(`Error al crear el pedido: ${errorMessage}`);
+      if (error.response?.status === 401) {
+        toast.error('Sesión expirada. Por favor inicia sesión nuevamente');
+        handleLogout();
+      } else {
+        toast.error(`Error al crear el pedido: ${errorMessage}`);
+      }
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setAddresses([]);
+    setOrders([]);
+    setCart([]);
+    setActiveTab('menu');
+    toast.info('Sesión cerrada correctamente');
   };
 
   const handleLogin = async () => {
@@ -187,24 +208,27 @@ const ClientPage = ({ switchToAdmin }) => {
       setUser(response.user);
       setShowLogin(false);
       setLoginData({ email: '', password: '' });
+      toast.success('¡Bienvenido!');
       loadAddresses();
       loadOrders();
     } catch (error) {
       console.error('Error logging in:', error);
-      alert('Error al iniciar sesión. Verifica tus credenciales.');
+      const errorMessage = error.response?.data?.detail || 'Error al iniciar sesión. Verifica tus credenciales.';
+      toast.error(errorMessage);
     }
   };
 
   const handleRegister = async () => {
     try {
       await authAPI.register(registerData);
-      alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
+      toast.success('¡Registro exitoso! Ahora puedes iniciar sesión.');
       setShowRegister(false);
       setShowLogin(true);
       setRegisterData({ email: '', password: '', name: '', phone: '' });
     } catch (error) {
       console.error('Error registering:', error);
-      alert('Error al registrarse. El email puede estar en uso.');
+      const errorMessage = error.response?.data?.detail || 'Error al registrarse. El email puede estar en uso.';
+      toast.error(errorMessage);
     }
   };
 
@@ -219,63 +243,70 @@ const ClientPage = ({ switchToAdmin }) => {
         cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
         onLogin={() => setShowLogin(true)}
         onCartClick={() => {}}
+        onLogout={handleLogout}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Products Section */}
-          <div className="lg:col-span-2">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-800 mb-6">Nuestro Menú</h2>
+        {activeTab === 'menu' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Products Section */}
+            <div className="lg:col-span-2">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-800 mb-6">Nuestro Menú</h2>
 
-              {/* Category Filter */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {categories.map(category => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`px-4 py-2 rounded-full ${
-                      selectedCategory === category
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
+                {/* Category Filter */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={`px-4 py-2 rounded-full ${
+                        selectedCategory === category
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredProducts.map(product => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={addToCart}
-                  />
-                ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredProducts.map(product => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAddToCart={addToCart}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Cart and Order Form Section */}
-          <div className="lg:col-span-1 space-y-6">
-            <Cart
-              cart={cart}
-              onUpdateQuantity={updateQuantity}
-              onRemoveFromCart={removeFromCart}
-              totalPrice={getTotalPrice()}
-            />
+            {/* Cart and Order Form Section */}
+            <div className="lg:col-span-1 space-y-6">
+              <Cart
+                cart={cart}
+                onUpdateQuantity={updateQuantity}
+                onRemoveFromCart={removeFromCart}
+                totalPrice={getTotalPrice()}
+              />
 
-            <OrderForm
-              addresses={addresses}
-              orderForm={orderForm}
-              onAddressChange={(e) => setOrderForm({...orderForm, addressId: e.target.value})}
-              onNotesChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
-              onPaymentMethodChange={(method) => setOrderForm({...orderForm, paymentMethod: method})}
-              onPlaceOrder={handlePlaceOrder}
-              onAddressAdded={handleAddressAdded}
-              disabled={cart.length === 0 || !user}
-            />
+              <OrderForm
+                addresses={addresses}
+                orderForm={orderForm}
+                onAddressChange={(e) => setOrderForm({...orderForm, addressId: e.target.value})}
+                onNotesChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
+                onPaymentMethodChange={(method) => setOrderForm({...orderForm, paymentMethod: method})}
+                onPlaceOrder={handlePlaceOrder}
+                onAddressAdded={handleAddressAdded}
+                disabled={cart.length === 0 || !user}
+              />
+            </div>
           </div>
-        </div>
+        ) : (
+          <MyOrders user={user} toast={toast} />
+        )}
       </ClientLayout>
 
       {/* Login Modal */}
@@ -323,17 +354,17 @@ const ClientPage = ({ switchToAdmin }) => {
         </div>
       )}
       
-      {/* Botón flotante para ir a vista admin */}
+      {/* Botón discreto para ir a vista admin - Solo visible en la esquina */}
       <button
         onClick={switchToAdmin}
-        className="fixed bottom-8 right-8 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 flex items-center gap-2 z-40"
+        className="fixed bottom-4 right-4 bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg shadow-md transition-all duration-300 opacity-50 hover:opacity-100 z-40"
+        title="Panel de Administración"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
           <line x1="8" y1="21" x2="16" y2="21"></line>
           <line x1="12" y1="17" x2="12" y2="21"></line>
         </svg>
-        Ir a Vista Admin
       </button>
 
       {/* Register Modal */}

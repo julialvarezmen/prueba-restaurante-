@@ -88,16 +88,23 @@ async def login(request: LoginRequest):
 async def get_profile(current_user: dict = Depends(get_current_user)):
     """Obtener perfil del usuario actual"""
     # Obtener información completa del usuario desde la base de datos
-    from services.database_service import get_user_by_email
+    from services.database_service import get_user_by_id
     user_id = current_user.get("userId")
     
-    # Buscar usuario por ID (necesitamos una función para esto o usar email)
-    # Por ahora, devolvemos lo que tenemos en el token
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    
+    # Buscar usuario por ID
+    user = await get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
     return {
-        "id": current_user.get("userId"),
-        "userId": current_user.get("userId"),
-        "role": current_user.get("role"),
-        "email": current_user.get("email", ""),
-        "name": current_user.get("name", "")
+        "id": user.get("id"),
+        "userId": user.get("id"),
+        "role": user.get("role"),
+        "email": user.get("email", ""),
+        "name": user.get("name", ""),
+        "phone": user.get("phone")
     }
 

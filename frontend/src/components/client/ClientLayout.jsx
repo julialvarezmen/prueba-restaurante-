@@ -1,7 +1,9 @@
-import React from 'react';
-import { Menu, ShoppingCart, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Menu, ShoppingCart, User, LogOut, ChevronDown } from 'lucide-react';
 
-const ClientLayout = ({ children, user, cartCount, onLogin, onCartClick }) => {
+const ClientLayout = ({ children, user, cartCount, onLogin, onCartClick, onLogout, activeTab, setActiveTab }) => {
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
       {/* Header */}
@@ -16,13 +18,67 @@ const ClientLayout = ({ children, user, cartCount, onLogin, onCartClick }) => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <button
-                onClick={onLogin}
-                className="flex items-center space-x-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-              >
-                <User className="w-4 h-4" />
-                <span>{user ? user.name : 'Iniciar Sesión'}</span>
-              </button>
+              {/* Navigation Tabs */}
+              {user && (
+                <div className="flex space-x-2 border-b border-gray-200">
+                  <button
+                    onClick={() => setActiveTab('menu')}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === 'menu'
+                        ? 'text-orange-600 border-b-2 border-orange-600'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Menú
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('orders')}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === 'orders'
+                        ? 'text-orange-600 border-b-2 border-orange-600'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Mis Pedidos
+                  </button>
+                </div>
+              )}
+
+              {/* User Menu */}
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>{user.name}</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          onLogout();
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Cerrar Sesión</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={onLogin}
+                  className="flex items-center space-x-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Iniciar Sesión</span>
+                </button>
+              )}
 
               {cartCount > 0 && (
                 <div className="relative">
