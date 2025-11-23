@@ -53,6 +53,14 @@ y esto es una mala practica, recuerda que ambas webs son independientes
 
 **Resultado:** ✅ Implementación de sesiones completamente independientes con localStorage separado
 
+#### Ejemplo 4: Implementación de Branding/Logo
+```
+@prueba-restaurante- Actua como un Desarrollador FullStack senior, Quiero que agregues 
+esta imagen como el logo ambas web del proyecto, Objetivo solo cambiar el icono de la pestaña
+```
+
+**Resultado:** ✅ Implementación de favicon y logo en ambas aplicaciones (frontend y admin-frontend), reemplazo del icono de menú hamburguesa por el logo de SoftDomiFood en el header del cliente
+
 ---
 
 ## 🛠️ Herramientas de IA Utilizadas
@@ -316,6 +324,9 @@ prueba-restaurante/
 │       └── schema.prisma
 │
 ├── frontend/                      # Frontend Cliente (React)
+│   ├── public/                    # Archivos estáticos
+│   │   ├── favicon.svg           # Favicon de la aplicación
+│   │   └── logo.svg              # Logo de SoftDomiFood
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── client/           # Componentes de cliente
@@ -325,9 +336,12 @@ prueba-restaurante/
 │   │   ├── hooks/
 │   │   ├── utils/
 │   │   └── App.jsx
+│   ├── index.html                 # HTML principal con favicon
 │   └── package.json
 │
 ├── admin-frontend/                # Frontend Admin (React)
+│   ├── public/                    # Archivos estáticos
+│   │   └── favicon.svg           # Favicon de la aplicación
 │   ├── src/
 │   │   ├── components/
 │   │   │   └── admin/           # Componentes de admin
@@ -335,6 +349,7 @@ prueba-restaurante/
 │   │   │   ├── AdminPage.jsx
 │   │   │   └── AdminLogin.jsx
 │   │   └── App.jsx
+│   ├── index.html                 # HTML principal con favicon
 │   └── package.json
 │
 ├── docker-compose.yml             # Orquestación de servicios
@@ -387,11 +402,23 @@ prueba-restaurante/
    - Frontend admin (puerto 3001) - solo adminToken
    - Redirecciones sin interferencia de sesiones
 
+8. ✅ **Branding e Identidad Visual**
+   - Favicon personalizado (SoftDomiFood) en ambas aplicaciones
+   - Logo de SoftDomiFood en el header de la página de clientes
+   - Logo: Círculo naranja con tres líneas horizontales blancas
+   - Archivos de assets en carpetas `public/` de cada frontend
+
 ### Arquitectura de Sesiones
 
 - **Cliente → Admin:** Redirige con `?forceLogin=true` (siempre muestra login)
 - **Admin → Cliente:** Redirige con `?noSession=true` (sin sesión de cliente)
 - **Tokens separados:** `clientToken` y `adminToken` en localStorage independiente
+
+### Assets y Branding
+
+- **Favicon:** `frontend/public/favicon.svg` y `admin-frontend/public/favicon.svg`
+- **Logo:** `frontend/public/logo.svg` (usado en header de cliente)
+- **Formato:** SVG para escalabilidad y rendimiento
 
 ---
 
@@ -451,4 +478,11 @@ prueba-restaurante/
 ---
 
 **Última actualización:** Noviembre 2025
-**Versión del documento:** 2.0
+**Versión del documento:** 2.1
+
+### Cambios Recientes (v2.1)
+
+- ✅ Implementación de favicon personalizado en ambas aplicaciones
+- ✅ Integración del logo de SoftDomiFood en el header del cliente
+- ✅ Reemplazo del icono de menú hamburguesa por el logo de marca
+- ✅ Creación de carpetas `public/` para assets estáticos en ambos frontends
