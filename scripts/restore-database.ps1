@@ -4,9 +4,9 @@
 param(
     [Parameter(Mandatory=$true)]
     [string]$BackupFile,
-    [string]$ContainerName = "salchipapas-db",
-    [string]$DbUser = "salchipapas_user",
-    [string]$DbName = "salchipapas_db"
+    [string]$ContainerName = "softdomifood-db",
+    [string]$DbUser = "softdomifood_user",
+    [string]$DbName = "softdomifood_db"
 )
 
 Write-Host "📥 Iniciando restauración de la base de datos..." -ForegroundColor Green

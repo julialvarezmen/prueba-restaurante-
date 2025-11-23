@@ -1,7 +1,7 @@
-# Script de Reparación de Base de Datos - Salchipapas
+# Script de Reparación de Base de Datos - SoftDomiFood
 # Ejecutar desde el directorio raíz del proyecto
 
-Write-Host "`n🔧 REPARACIÓN DE BASE DE DATOS - SALCHIPAPAS" -ForegroundColor Cyan
+Write-Host "`n🔧 REPARACIÓN DE BASE DE DATOS - SOFTDOMIFOOD" -ForegroundColor Cyan
 Write-Host "==========================================`n" -ForegroundColor Cyan
 
 # Paso 1: Limpiar todo
@@ -19,11 +19,11 @@ if ($volumeName) {
 Write-Host "`n📝 Paso 2/8: Verificando archivo .env del backend..." -ForegroundColor Yellow
 if (Test-Path "backend\.env") {
     $envContent = Get-Content "backend\.env" -Raw
-    if ($envContent -match "salchipapas_db") {
+    if ($envContent -match "softdomifood_db") {
         Write-Host "   ✅ .env configurado correctamente" -ForegroundColor Green
     } else {
         Write-Host "   ⚠️  .env puede tener configuración incorrecta" -ForegroundColor Red
-        Write-Host "   📋 Verifica que DATABASE_URL apunte a salchipapas_db" -ForegroundColor Yellow
+        Write-Host "   📋 Verifica que DATABASE_URL apunte a softdomifood_db" -ForegroundColor Yellow
     }
 } else {
     Write-Host "   📋 Creando .env desde env.example..." -ForegroundColor Yellow
@@ -46,7 +46,7 @@ Write-Host "   ⏳ Esperando a que PostgreSQL esté listo (20 segundos)..." -For
 Start-Sleep -Seconds 20
 
 # Verificar que postgres esté saludable
-$healthCheck = docker-compose exec -T postgres pg_isready -U salchipapas_user 2>&1
+$healthCheck = docker-compose exec -T postgres pg_isready -U softdomifood_user 2>&1
 if ($healthCheck -match "accepting connections") {
     Write-Host "   ✅ PostgreSQL está listo" -ForegroundColor Green
 } else {
@@ -55,12 +55,12 @@ if ($healthCheck -match "accepting connections") {
 
 # Paso 4: Verificar/Crear base de datos
 Write-Host "`n🔍 Paso 4/8: Verificando existencia de la base de datos..." -ForegroundColor Yellow
-$dbExists = docker-compose exec -T postgres psql -U salchipapas_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='salchipapas_db';" 2>&1
+$dbExists = docker-compose exec -T postgres psql -U softdomifood_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='softdomifood_db';" 2>&1
 if ($dbExists -match "1") {
-    Write-Host "   ✅ Base de datos 'salchipapas_db' existe" -ForegroundColor Green
+    Write-Host "   ✅ Base de datos 'softdomifood_db' existe" -ForegroundColor Green
 } else {
-    Write-Host "   📦 Creando base de datos 'salchipapas_db'..." -ForegroundColor Yellow
-    docker-compose exec -T postgres psql -U salchipapas_user -d postgres -c "CREATE DATABASE salchipapas_db;" 2>&1 | Out-Null
+    Write-Host "   📦 Creando base de datos 'softdomifood_db'..." -ForegroundColor Yellow
+    docker-compose exec -T postgres psql -U softdomifood_user -d postgres -c "CREATE DATABASE softdomifood_db;" 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   ✅ Base de datos creada" -ForegroundColor Green
     } else {
@@ -102,7 +102,7 @@ if ($LASTEXITCODE -eq 0) {
 
 # Verificar tablas creadas
 Write-Host "   🔍 Verificando tablas creadas..." -ForegroundColor Gray
-$tables = docker-compose exec -T postgres psql -U salchipapas_user -d salchipapas_db -tAc "\dt" 2>&1
+$tables = docker-compose exec -T postgres psql -U softdomifood_user -d softdomifood_db -tAc "\dt" 2>&1
 $tableCount = ($tables -split "`n" | Where-Object { $_ -match "public" }).Count
 Write-Host "   ✅ Se encontraron $tableCount tablas" -ForegroundColor Green
 
@@ -122,8 +122,8 @@ if ($LASTEXITCODE -eq 0) {
 
 # Verificar datos
 Write-Host "   🔍 Verificando datos insertados..." -ForegroundColor Gray
-$productCount = docker-compose exec -T postgres psql -U salchipapas_user -d salchipapas_db -tAc "SELECT COUNT(*) FROM products;" 2>&1
-$userCount = docker-compose exec -T postgres psql -U salchipapas_user -d salchipapas_db -tAc "SELECT COUNT(*) FROM users;" 2>&1
+$productCount = docker-compose exec -T postgres psql -U softdomifood_user -d softdomifood_db -tAc "SELECT COUNT(*) FROM products;" 2>&1
+$userCount = docker-compose exec -T postgres psql -U softdomifood_user -d softdomifood_db -tAc "SELECT COUNT(*) FROM users;" 2>&1
 Write-Host "   📦 Productos: $productCount" -ForegroundColor Cyan
 Write-Host "   👤 Usuarios: $userCount" -ForegroundColor Cyan
 
@@ -149,8 +149,8 @@ Write-Host "`n📝 Comandos útiles:" -ForegroundColor Yellow
 Write-Host "   Ver logs:           docker-compose logs -f" -ForegroundColor Gray
 Write-Host "   Ver logs postgres:  docker-compose logs postgres" -ForegroundColor Gray
 Write-Host "   Ver logs backend:   docker-compose logs backend" -ForegroundColor Gray
-Write-Host "   Conectar a BD:      docker-compose exec postgres psql -U salchipapas_user -d salchipapas_db" -ForegroundColor Gray
-Write-Host "   Listar tablas:      docker-compose exec postgres psql -U salchipapas_user -d salchipapas_db -c '\dt'" -ForegroundColor Gray
+Write-Host "   Conectar a BD:      docker-compose exec postgres psql -U softdomifood_user -d softdomifood_db" -ForegroundColor Gray
+Write-Host "   Listar tablas:      docker-compose exec postgres psql -U softdomifood_user -d softdomifood_db -c '\dt'" -ForegroundColor Gray
 
 Write-Host "`n🔗 URLs:" -ForegroundColor Yellow
 Write-Host "   Frontend: http://localhost:3000" -ForegroundColor Cyan
@@ -158,7 +158,7 @@ Write-Host "   Backend:  http://localhost:5000/api" -ForegroundColor Cyan
 Write-Host "   Health:   http://localhost:5000/api/health" -ForegroundColor Cyan
 
 Write-Host "`n👤 Usuario Admin:" -ForegroundColor Yellow
-Write-Host "   Email:    admin@salchipapas.com" -ForegroundColor Cyan
+Write-Host "   Email:    admin@softdomifood.com" -ForegroundColor Cyan
 Write-Host "   Password: admin123" -ForegroundColor Cyan
 
 Write-Host "`n" -NoNewline

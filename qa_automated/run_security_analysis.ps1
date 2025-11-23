@@ -8,8 +8,8 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $DockerfilePath = Join-Path $ScriptDir "Dockerfile.qa"
-$ImageName = "salchipapas-qa:latest"
-$ContainerName = "salchipapas-security-analysis"
+$ImageName = "softdomifood-qa:latest"
+$ContainerName = "softdomifood-security-analysis"
 
 # Verificar que estamos en la raíz del proyecto
 if (-not (Test-Path (Join-Path $ProjectRoot "docker-compose.yml")) -and 

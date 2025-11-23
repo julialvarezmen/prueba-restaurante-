@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
         print(f"⚠️  Error al cerrar conexión RabbitMQ: {e}")
 
 app = FastAPI(
-    title="Salchipapas API",
+    title="SoftDomiFood API",
     description="API Producer para sistema de pedidos",
     version="1.0.0",
     lifespan=lifespan
@@ -96,7 +96,7 @@ app.include_router(addresses.router, prefix="/api", tags=["addresses"])
 @app.get("/")
 async def root():
     return {
-        "message": "Salchipapas API",
+        "message": "SoftDomiFood API",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/api/health"
@@ -106,7 +106,7 @@ async def root():
 async def health():
     return {
         "status": "ok",
-        "message": "Salchipapas API is running",
+        "message": "SoftDomiFood API is running",
         "service": "producer"
     }
 

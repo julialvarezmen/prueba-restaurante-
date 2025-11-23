@@ -2,19 +2,19 @@ services:
   # Base de datos PostgreSQL
   postgres:
     image: postgres:15-alpine
-    container_name: salchipapas-db
+    container_name: softdomifood-db
     environment:
-      POSTGRES_USER: salchipapas_user
-      POSTGRES_PASSWORD: salchipapas_pass
-      POSTGRES_DB: salchipapas_db
+      POSTGRES_USER: softdomifood_user
+      POSTGRES_PASSWORD: softdomifood_pass
+      POSTGRES_DB: softdomifood_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - salchipapas-network
+      - softdomifood-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U salchipapas_user"]
+      test: ["CMD-SHELL", "pg_isready -U softdomifood_user"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,7 +22,7 @@ services:
   # RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: salchipapas-rabbitmq
+    container_name: softdomifood-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin123
@@ -32,7 +32,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - salchipapas-network
+      - softdomifood-network
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -44,9 +44,9 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
-    container_name: salchipapas-api
+    container_name: softdomifood-api
     environment:
-      DATABASE_URL: postgresql://salchipapas_user:salchipapas_pass@postgres:5432/salchipapas_db
+      DATABASE_URL: postgresql://softdomifood_user:softdomifood_pass@postgres:5432/softdomifood_db
       RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672/
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       JWT_EXPIRES_IN: 7d
@@ -62,7 +62,7 @@ services:
     volumes:
       - ./api:/app
     networks:
-      - salchipapas-network
+      - softdomifood-network
     command: uvicorn main:app --host 0.0.0.0 --port 5000 --reload
 
   # Consumer Worker (Node.js)
@@ -70,9 +70,9 @@ services:
     build:
       context: ./worker
       dockerfile: Dockerfile
-    container_name: salchipapas-worker
+    container_name: softdomifood-worker
     environment:
-      DATABASE_URL: postgresql://salchipapas_user:salchipapas_pass@postgres:5432/salchipapas_db
+      DATABASE_URL: postgresql://softdomifood_user:softdomifood_pass@postgres:5432/softdomifood_db
       RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672/
     depends_on:
       postgres:
@@ -83,7 +83,7 @@ services:
       - ./worker:/app
       - /app/node_modules
     networks:
-      - salchipapas-network
+      - softdomifood-network
     command: npm run dev
 
   # Frontend React (Cliente)
@@ -91,7 +91,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: salchipapas-frontend
+    container_name: softdomifood-frontend
     environment:
       VITE_API_URL: http://localhost:5000/api
     ports:
@@ -102,7 +102,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     networks:
-      - salchipapas-network
+      - softdomifood-network
     command: npm run dev
 
   # Frontend React (Administración)
@@ -110,7 +110,7 @@ services:
     build:
       context: ./admin-frontend
       dockerfile: Dockerfile
-    container_name: salchipapas-admin-frontend
+    container_name: softdomifood-admin-frontend
     environment:
       VITE_API_URL: http://localhost:5000/api
     ports:
@@ -121,7 +121,7 @@ services:
       - ./admin-frontend:/app
       - /app/node_modules
     networks:
-      - salchipapas-network
+      - softdomifood-network
     command: npm run dev
 
 volumes:
@@ -129,5 +129,5 @@ volumes:
   rabbitmq_data:
 
 networks:
-  salchipapas-network:
+  softdomifood-network:
     driver: bridge

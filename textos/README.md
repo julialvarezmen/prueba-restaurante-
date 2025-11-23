@@ -1,6 +1,6 @@
-# Sistema de Pedidos de Domicilio - Salchipapas 🍟
+# Sistema de Pedidos de Domicilio - SoftDomiFood 🍟
 
-Sistema completo de pedidos de domicilio para un restaurante de salchipapas.
+Sistema completo de pedidos de domicilio para restaurantes.
 
 ## Stack Tecnológico
 
@@ -128,7 +128,7 @@ Para poblar la base de datos con datos de ejemplo (productos, usuarios de prueba
 .\scripts\initialize-database.ps1
 
 # Opción 2: Solo ejecutar el seed
-docker exec salchipapas-api python seed_data.py
+docker exec softdomifood-api python seed_data.py
 ```
 
 ### Compartir Datos entre Desarrolladores

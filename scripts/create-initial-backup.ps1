@@ -6,7 +6,7 @@ Write-Host "📦 Creando backup inicial de la base de datos..." -ForegroundColor
 Write-Host ""
 
 # Verificar que los servicios estén corriendo
-$dbContainer = docker ps --filter "name=salchipapas-db" --format "{{.Names}}" | Select-String -Pattern "salchipapas-db"
+$dbContainer = docker ps --filter "name=softdomifood-db" --format "{{.Names}}" | Select-String -Pattern "softdomifood-db"
 
 if (-not $dbContainer) {
     Write-Host "❌ Error: El contenedor de PostgreSQL no está corriendo." -ForegroundColor Red

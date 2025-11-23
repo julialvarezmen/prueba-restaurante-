@@ -11,8 +11,8 @@ Write-Host ""
 
 # Verificar que los servicios estén corriendo
 Write-Host "🔍 Verificando servicios..." -ForegroundColor Yellow
-$apiContainer = docker ps --filter "name=salchipapas-api" --format "{{.Names}}" | Select-String -Pattern "salchipapas-api"
-$dbContainer = docker ps --filter "name=salchipapas-db" --format "{{.Names}}" | Select-String -Pattern "salchipapas-db"
+$apiContainer = docker ps --filter "name=softdomifood-api" --format "{{.Names}}" | Select-String -Pattern "softdomifood-api"
+$dbContainer = docker ps --filter "name=softdomifood-db" --format "{{.Names}}" | Select-String -Pattern "softdomifood-db"
 
 if (-not $dbContainer) {
     Write-Host "❌ Error: El contenedor de PostgreSQL no está corriendo." -ForegroundColor Red
@@ -29,7 +29,7 @@ if (-not $SkipSeed) {
     
     try {
         # Ejecutar el script de seed dentro del contenedor de la API
-        docker exec salchipapas-api python -c "import asyncio; from seed_data import seed_database; asyncio.run(seed_database(force_clear=False))"
+        docker exec softdomifood-api python -c "import asyncio; from seed_data import seed_database; asyncio.run(seed_database(force_clear=False))"
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ Seed completado exitosamente!" -ForegroundColor Green
@@ -41,7 +41,7 @@ if (-not $SkipSeed) {
         Write-Host "   Intentando método alternativo..." -ForegroundColor Yellow
         
         # Método alternativo: ejecutar directamente con python
-        docker exec salchipapas-api python seed_data.py
+        docker exec softdomifood-api python seed_data.py
     }
     
     Write-Host ""

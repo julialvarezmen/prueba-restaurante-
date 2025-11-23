@@ -2,9 +2,9 @@
 # Uso: .\scripts\backup-database.ps1
 
 param(
-    [string]$ContainerName = "salchipapas-db",
-    [string]$DbUser = "salchipapas_user",
-    [string]$DbName = "salchipapas_db",
+    [string]$ContainerName = "softdomifood-db",
+    [string]$DbUser = "softdomifood_user",
+    [string]$DbName = "softdomifood_db",
     [string]$OutputDir = "database\backups"
 )
 

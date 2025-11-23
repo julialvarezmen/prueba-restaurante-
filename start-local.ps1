@@ -1,6 +1,6 @@
 # Script para iniciar el proyecto localmente (sin Docker para frontend, backend y worker)
 
-Write-Host "🚀 Iniciando proyecto Salchipapas (modo local)" -ForegroundColor Green
+Write-Host "🚀 Iniciando proyecto SoftDomiFood (modo local)" -ForegroundColor Green
 Write-Host ""
 
 # Verificar que Docker Desktop esté corriendo
