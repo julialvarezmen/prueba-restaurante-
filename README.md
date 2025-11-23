@@ -110,23 +110,39 @@ Ver archivos `env.example` en cada directorio para configuración.
 
 ## Base de Datos
 
-El sistema usa Prisma como ORM. Para ejecutar migraciones:
+### Inicialización Automática
 
-```bash
-cd backend
-npx prisma migrate dev
-npx prisma generate
+La base de datos se inicializa automáticamente al iniciar los servicios con Docker Compose. Las tablas se crean automáticamente y se crea un usuario administrador por defecto.
+
+### Usuario Admin por Defecto
+
+- Email: `Admin@sofka.com`
+- Password: `Admin 123`
+
+### Datos de Ejemplo
+
+Para poblar la base de datos con datos de ejemplo (productos, usuarios de prueba, pedidos):
+
+```powershell
+# Opción 1: Script completo (recomendado)
+.\scripts\initialize-database.ps1
+
+# Opción 2: Solo ejecutar el seed
+docker exec salchipapas-api python seed_data.py
 ```
 
-Para poblar la base de datos con datos de ejemplo:
+### Compartir Datos entre Desarrolladores
 
-```bash
-npm run prisma:seed
+El proyecto incluye un sistema de backups para compartir datos entre el equipo. Ver **[DATABASE_SHARING.md](DATABASE_SHARING.md)** para más detalles.
+
+**Resumen rápido:**
+```powershell
+# Crear backup de datos actuales
+.\scripts\backup-database.ps1
+
+# Restaurar datos desde backup
+.\scripts\restore-database.ps1 -BackupFile "database/backups/initial_data.sql"
 ```
 
-## Usuario Admin por Defecto
-
-Después de ejecutar el seed:
-- Email: `admin@salchipapas.com`
-- Password: `admin123`
+Los backups se almacenan en `database/backups/` y pueden ser compartidos a través de Git.
 

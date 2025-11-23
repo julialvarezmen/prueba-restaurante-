@@ -80,19 +80,20 @@ const ClientLayout = ({ children, user, cartCount, onLogin, onCartClick, onLogou
                 </button>
               )}
 
-              {cartCount > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={onCartClick}
-                    className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-                  >
-                    <ShoppingCart className="w-5 h-5" />
+              <div className="relative">
+                <button
+                  onClick={onCartClick}
+                  className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors relative"
+                  aria-label="Abrir carrito"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  {cartCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                       {cartCount}
                     </span>
-                  </button>
-                </div>
-              )}
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

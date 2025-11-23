@@ -33,6 +33,10 @@ logs/
 *.db
 *.sqlite
 
+# Database backups (except initial_data.sql and manually shared backups)
+database/backups/backup_*.sql
+!database/backups/initial_data.sql
+
 # Docker
 .dockerignore
 

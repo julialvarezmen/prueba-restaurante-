@@ -20,10 +20,24 @@ const ClientPage = ({ switchToAdmin, toast, adminUser = null, isAdminView = fals
   });
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [isCartVisible, setIsCartVisible] = useState(true);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [registerData, setRegisterData] = useState({ email: '', password: '', name: '', phone: '' });
-  const [categories, setCategories] = useState(['Todos', 'Principal', 'Entrante', 'Postre']);
+  // Categorías que coinciden con el backend y panel de administrador
+  const categories = ['Todos', 'SALCHIPAPAS', 'BEBIDAS', 'ADICIONALES', 'COMBOS'];
   const [selectedCategory, setSelectedCategory] = useState('Todos');
+  
+  // Función para obtener etiquetas amigables de las categorías
+  const getCategoryLabel = (category) => {
+    if (category === 'Todos') return 'Todos';
+    const labels = {
+      'SALCHIPAPAS': 'Salchipapas',
+      'BEBIDAS': 'Bebidas',
+      'ADICIONALES': 'Adicionales',
+      'COMBOS': 'Combos'
+    };
+    return labels[category] || category;
+  };
 
   // Load real data from API
   useEffect(() => {
@@ -309,7 +323,7 @@ const ClientPage = ({ switchToAdmin, toast, adminUser = null, isAdminView = fals
         user={user}
         cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
         onLogin={() => setShowLogin(true)}
-        onCartClick={() => {}}
+        onCartClick={() => setIsCartVisible(!isCartVisible)}
         onLogout={handleLogout}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -333,7 +347,7 @@ const ClientPage = ({ switchToAdmin, toast, adminUser = null, isAdminView = fals
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
-                      {category}
+                      {getCategoryLabel(category)}
                     </button>
                   ))}
                 </div>
@@ -352,12 +366,14 @@ const ClientPage = ({ switchToAdmin, toast, adminUser = null, isAdminView = fals
 
             {/* Cart and Order Form Section */}
             <div className="lg:col-span-1 space-y-6">
-              <Cart
-                cart={cart}
-                onUpdateQuantity={updateQuantity}
-                onRemoveFromCart={removeFromCart}
-                totalPrice={getTotalPrice()}
-              />
+              {isCartVisible && (
+                <Cart
+                  cart={cart}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveFromCart={removeFromCart}
+                  totalPrice={getTotalPrice()}
+                />
+              )}
 
               {!isAdminView && (
                 <OrderForm
