@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, ShoppingCart, User, LogOut, ChevronDown } from 'lucide-react';
+import { ShoppingCart, User, LogOut, ChevronDown } from 'lucide-react';
 
 const ClientLayout = ({ children, user, cartCount, onLogin, onCartClick, onLogout, activeTab, setActiveTab }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -11,9 +11,11 @@ const ClientLayout = ({ children, user, cartCount, onLogin, onCartClick, onLogou
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                <Menu className="w-6 h-6 text-white" />
-              </div>
+              <img 
+                src="/logo.svg" 
+                alt="SoftDomiFood Logo" 
+                className="w-10 h-10 flex-shrink-0"
+              />
               <h1 className="text-2xl font-bold text-gray-800">SoftDomiFood</h1>
             </div>
 

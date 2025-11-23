@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from database import engine, Base, get_db
 from routers import auth, products, orders, admin, addresses
 from init_db import init_database, check_tables_exist, create_admin_user
+from services.rabbitmq import get_channel, close_connection
 
 load_dotenv()
 
@@ -43,9 +44,25 @@ async def lifespan(app: FastAPI):
         except Exception as e2:
             print(f"   ❌ Error al forzar creación: {e2}")
             print("   Continuando de todas formas...")
+    
+    # Inicializar conexión RabbitMQ
+    print("🐰 Inicializando conexión RabbitMQ...")
+    try:
+        await get_channel()
+        print("✅ Conexión RabbitMQ inicializada correctamente")
+    except Exception as e:
+        print(f"⚠️  Error al inicializar RabbitMQ: {e}")
+        print("   La aplicación continuará, pero los mensajes no se publicarán")
+        import traceback
+        traceback.print_exc()
+    
     yield
     # Shutdown
-    pass
+    print("🛑 Cerrando conexiones...")
+    try:
+        await close_connection()
+    except Exception as e:
+        print(f"⚠️  Error al cerrar conexión RabbitMQ: {e}")
 
 app = FastAPI(
     title="Salchipapas API",

@@ -43,12 +43,40 @@ async function processOrder(message: OrderMessage) {
   }
 }
 
+let connection: amqp.Connection | null = null;
+let channel: amqp.Channel | null = null;
+let isProcessing = false;
+
 async function startConsumer() {
   try {
     console.log('🔌 Conectando a RabbitMQ...');
-    console.log(`📍 URL de conexión: ${RABBITMQ_URL.replace(/:[^:@]+@/, ':****@')}`); // Ocultar contraseña en logs
-    const connection = await amqp.connect(RABBITMQ_URL);
-    const channel = await connection.createChannel();
+    // Ocultar contraseña en logs
+    const safeUrl = RABBITMQ_URL.replace(/:[^:@]+@/, ':****@');
+    console.log(`📍 URL de conexión: ${safeUrl}`);
+    
+    connection = await amqp.connect(RABBITMQ_URL);
+    channel = await connection.createChannel();
+    
+    // Manejar errores de conexión
+    connection.on('error', (err) => {
+      console.error('❌ Error de conexión RabbitMQ:', err);
+      connection = null;
+      channel = null;
+      if (!isProcessing) {
+        console.log('🔄 Reintentando conexión en 5 segundos...');
+        setTimeout(startConsumer, 5000);
+      }
+    });
+    
+    connection.on('close', () => {
+      console.warn('⚠️  Conexión RabbitMQ cerrada');
+      connection = null;
+      channel = null;
+      if (!isProcessing) {
+        console.log('🔄 Reintentando conexión en 5 segundos...');
+        setTimeout(startConsumer, 5000);
+      }
+    });
     
     // Asegurar que la cola existe
     await channel.assertQueue(QUEUE_NAME, { durable: true });
@@ -59,8 +87,9 @@ async function startConsumer() {
     
     // Consumir mensajes
     channel.consume(QUEUE_NAME, async (msg) => {
-      if (!msg) return;
+      if (!msg || !channel) return;
       
+      isProcessing = true;
       try {
         const orderData: OrderMessage = JSON.parse(msg.content.toString());
         console.log(`📨 Mensaje recibido: Pedido ${orderData.orderId}`);
@@ -74,7 +103,13 @@ async function startConsumer() {
       } catch (error: any) {
         console.error('❌ Error procesando mensaje:', error);
         // Rechazar mensaje y no reencolar (para evitar loops infinitos)
-        channel.nack(msg, false, false);
+        try {
+          channel.nack(msg, false, false);
+        } catch (nackError) {
+          console.error('❌ Error al rechazar mensaje:', nackError);
+        }
+      } finally {
+        isProcessing = false;
       }
     }, {
       noAck: false // Requerir confirmación manual
@@ -85,22 +120,59 @@ async function startConsumer() {
     // Manejar cierre graceful
     process.on('SIGINT', async () => {
       console.log('🛑 Cerrando conexión...');
-      await channel.close();
-      await connection.close();
+      isProcessing = true;
+      if (channel) {
+        try {
+          await channel.close();
+        } catch (e) {
+          console.error('Error cerrando canal:', e);
+        }
+      }
+      if (connection) {
+        try {
+          await connection.close();
+        } catch (e) {
+          console.error('Error cerrando conexión:', e);
+        }
+      }
+      await prisma.$disconnect();
+      process.exit(0);
+    });
+    
+    process.on('SIGTERM', async () => {
+      console.log('🛑 Recibida señal SIGTERM, cerrando...');
+      isProcessing = true;
+      if (channel) {
+        try {
+          await channel.close();
+        } catch (e) {
+          console.error('Error cerrando canal:', e);
+        }
+      }
+      if (connection) {
+        try {
+          await connection.close();
+        } catch (e) {
+          console.error('Error cerrando conexión:', e);
+        }
+      }
       await prisma.$disconnect();
       process.exit(0);
     });
     
   } catch (error: any) {
     console.error('❌ Error en consumer:', error);
-    console.error(`📍 URL intentada: ${RABBITMQ_URL.replace(/:[^:@]+@/, ':****@')}`);
+    const safeUrl = RABBITMQ_URL.replace(/:[^:@]+@/, ':****@');
+    console.error(`📍 URL intentada: ${safeUrl}`);
     if (error.code === 'ECONNREFUSED') {
       console.error('💡 Verifica que RabbitMQ esté corriendo y accesible en la red Docker');
       console.error('💡 Asegúrate de usar el nombre del servicio "rabbitmq" en lugar de una IP');
     }
     // Reintentar después de 5 segundos
-    console.log('🔄 Reintentando conexión en 5 segundos...');
-    setTimeout(startConsumer, 5000);
+    if (!isProcessing) {
+      console.log('🔄 Reintentando conexión en 5 segundos...');
+      setTimeout(startConsumer, 5000);
+    }
   }
 }
 
