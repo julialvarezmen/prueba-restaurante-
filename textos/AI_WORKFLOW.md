@@ -1,4 +1,4 @@
-# Sistema de Pedidos de Domicilio - Salchipapas 🍟
+# Sistema de Pedidos de Domicilio - SoftDomiFood🍟
 
 ## Estrategia de Interacción con IA
 
