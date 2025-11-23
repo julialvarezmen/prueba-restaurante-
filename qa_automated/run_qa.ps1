@@ -70,11 +70,14 @@ Write-Host "[INFO] Ejecutando pruebas..." -ForegroundColor Green
 Write-Host "   Argumentos de pytest: $PytestArgs" -ForegroundColor Cyan
 
 try {
+    # Usar sh -c para ejecutar el comando completo con argumentos
+    $Command = "pytest /app/qa_automated/ $PytestArgs"
+    
     docker run --rm `
         --name $ContainerName `
         -v "${ProjectRoot}:/app" `
         $ImageName `
-        pytest /app/qa_automated/ $PytestArgs
+        sh -c $Command
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "[OK] Pruebas completadas exitosamente" -ForegroundColor Green
